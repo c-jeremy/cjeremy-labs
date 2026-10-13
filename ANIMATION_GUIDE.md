@@ -59,6 +59,7 @@ You know what happens because you wrote the code. The viewer doesn't: they see i
 - **Fast actions, slow meanings.** A motion can be very quick if it's anticipated, but what it means needs held time. Anticipation tells the viewer where to look before the action, and the hold after it lets them understand it. Move quickly through what doesn't matter to the story, and spend time on what does. That contrast between quick and held is what gives a film rhythm; one constant speed, fast or slow, makes it flat and hard to follow.
 - **Lead the eye.** The viewer looks at whatever moves, is bright, is big or is being looked at. Before an important read, get their eye to the right place (a character looks at it, the camera moves to it, it moves or lights up first), and give the eye time to get there.
 - **Let the reads set the length.** A shot is as long as its reads need. A shot with many reads can't be short, and a shot whose reads have all landed shouldn't be padded. That includes the last shot: its final read needs time to land before the video ends.
+- **Narrated films breathe.** Time the voice before the pictures, and leave pauses between lines and longer ones at section changes (numbers in docs/STYLE.md, "Let it land"). Add a recap line after dense stretches, and callbacks to earlier images. A viewer still digesting the last idea can't take in the next one.
 
 For a worked example of timing an ending, see the end of this guide.
 

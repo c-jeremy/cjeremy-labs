@@ -130,6 +130,16 @@ K.swim(x, y, 32, t, { ...o, flip, talk: true }, 'pb');                  // talk:
 - **Score:** synthesised, one chord section per shot (curious / tense / bright), ducked under the voice. **Stingers**
   sit on picture events with a fixed vocabulary: block = click/contact, glock = "it worked" or a reveal, kalimba run =
   a process running, slide = something moving in or out, whoosh = a transition, kick + low block = a bonk or tear.
+- **Let it land.** The viewer hears each fact once, at full speed. Leave room to digest it:
+  - a breath (1.2–1.6 s) between lines, and about 3 s at every section change, where the picture holds or moves
+    slowly and the music comes up, with no new information;
+  - **recaps:** after every two or three dense sections, one short line that restates the point in plain words
+    ("回顾一下：复制一次，分裂两次……") over a simple diagram, then hold the diagram 2–3 s with no new read;
+  - **callbacks:** bring back an earlier image, number or motif when it pays off (the opening's hook number returns
+    in the count; the opening scene returns at the end), so each new fact hangs on something already understood;
+  - one musical motif kept for the recaps, so the ear learns "this is the summary".
+- A film timed like this runs 20–25% longer than back-to-back narration. That is the point: don't trim it back.
+  Worked example: `videos/meiosis.json` (`voice.starts`) and STORYBOARD_MEIOSIS.md.
 
 ## Avoid
 
@@ -162,7 +172,7 @@ then adjust by looking at renders.
 | waves across a strand | about 1.5 s end to end |
 | `act()` keys | 2–4 s apart, cut on a blink |
 | transitions | brush wipe 0.6 s (cut at the middle) · iris in 0.6–0.8 s, out about 1.3 s · cream flash 0.5 s |
-| narration gaps | 0.7–1.2 s between lines; 1.5–2 s at a shot change (room for the transition and a breath) |
+| narration gaps | 1.2–1.6 s between lines; ~3 s at a section change; after a recap line, hold its diagram 2–3 s (see "Let it land") |
 | frame cost | about 0.2–1.3 s per frame. Bilayers, LNP shells and the cytoplasm layer are the expensive parts: keep a frame under about 1 s |
 
 ## Kit API index (`MK`, in src/scenes/mrna_kit.js)
