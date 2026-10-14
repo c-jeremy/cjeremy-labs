@@ -1137,15 +1137,15 @@
     cornPlant(1840, 1030, .8, t, 'cv');
     balance(1430, 950, 1.15, .3, (px, py) => co2(px, py - 22, 1.4, 0, { key: 'cvco' }), (px, py) => pile(px, py, 15, 1.1, 'cvp', 1), 'cv');
     for (let i = 0; i < 7; i++) drop(1060 + i * 34, 520 - (i % 3) * 40 - i * 18, .6, { key: 'cvd' + i, col: mixCol(Z.water, PAL.cream, .3) });
-    pip(1020, 960, 44, { ...pipFeel('worried', .3), lookX: .8, lookY: -.3, emote: 'sweat', emoteK: 1, key: 'cvpip' });
+    pip(1060, 960, 44, { ...pipFeel('worried', .3), lookX: .8, lookY: -.3, emote: 'sweat', emoteK: 1, key: 'cvpip' });
     const F = (wgt, px) => `${wgt} ${px}px "Noto Sans CJK SC", "WenQuanYi Zen Hei", "PingFang SC", sans-serif`;
     boilSeed('cvtag'); paint(rrPts(80, 92, 540, 92, 30, 2), { wash: '#7FAE4E', ink: PAL.ink, sw: 1.2 });
     letter('高中生物 · 光合作用', 350, 140, 50, PAL.cream, { font: F(800, 50), screen: true });
     letter('吃饭还是喝水？', 92, 330, 132, '#3B2F45', { font: F(900, 132), align: 'left', stroke: PAL.cream, screen: true, ink: false });
     letter('植物每吸进1个CO₂', 96, 480, 62, '#3B2F45', { font: F(800, 62), align: 'left', stroke: PAL.cream, screen: true, ink: false });
     letter('要丢掉几百个水分子', 96, 565, 62, '#3B2F45', { font: F(800, 62), align: 'left', stroke: PAL.cream, screen: true, ink: false });
-    boilSeed('cvblob'); paint(ellPts(470, 750, 420, 110, 30, 6, -.04), { wash: '#FBE2A6', ink: null });
-    letter('C3 · C4 · CAM', 96, 750, 124, Z.gold, { font: F(900, 124), align: 'left', stroke: '#3B2F45', screen: true, rot: -.03 });
+    boilSeed('cvblob'); paint(ellPts(440, 750, 390, 104, 30, 6, -.04), { wash: '#FBE2A6', ink: null });
+    letter('C3 · C4 · CAM', 96, 750, 104, Z.gold, { font: F(900, 104), align: 'left', stroke: '#3B2F45', screen: true, rot: -.03 });
   };
   LOOPS.cover.len = 1;
 
