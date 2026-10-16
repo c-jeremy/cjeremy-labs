@@ -108,10 +108,22 @@ ${scripts}
         generationConfig: { responseModalities: ['AUDIO'], speechConfig: { languageCode: V.language, voiceConfig: { prebuiltVoiceConfig: { voiceName: V.voice } } } } }).catch(e => ({ error: String(e) }));
       const part = j.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
       if (!part) { console.log(`l${n}: ${JSON.stringify(j).slice(0, 200)} (retrying)`); await new Promise(ok => setTimeout(ok, 3000 * (tryN + 1))); continue; }
-      const raw = Buffer.from(part.inlineData.data, 'base64'), secs = raw.length / 2 / 24000;
+      // 3.1 sends bare 16-bit PCM; 3.8 sends a whole WAV file whose last chunk is signed C2PA metadata. Read only the WAV's
+      // data chunk: played as sound, the header is a click at the start and the C2PA block a loud burst of noise at the end.
+      let raw = Buffer.from(part.inlineData.data, 'base64'), rate = 24000, chans = 1;
+      if (raw.toString('ascii', 0, 4) === 'RIFF') {
+        let o = 12, pcm = null;
+        while (o + 8 <= raw.length) { const id = raw.toString('ascii', o, o + 4), len = raw.readUInt32LE(o + 4);
+          if (id === 'fmt ') { chans = raw.readUInt16LE(o + 10); rate = raw.readUInt32LE(o + 12); }
+          if (id === 'data') { pcm = raw.subarray(o + 8, Math.min(raw.length, o + 8 + len)); break; }
+          o += 8 + len + (len & 1); }
+        if (!pcm) { console.log(`l${n}: a WAV with no data chunk (retrying)`); continue; }
+        raw = pcm;
+      }
+      const secs = raw.length / 2 / chans / rate;
       if (secs > .4 * chars + 3 && tryN < 4) { console.log(`l${n}: ${secs.toFixed(1)} s for ${chars} characters, too long (retrying)`); continue; }
       writeFileSync(name + '.pcm', raw);
-      run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 's16le', '-ar', '24000', '-ac', '1', '-i', name + '.pcm',
+      run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 's16le', '-ar', String(rate), '-ac', String(chans), '-i', name + '.pcm',
         '-af', 'silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.05,areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.1,areverse',
         '-ar', String(SR), '-ac', '1', '-c:a', 'pcm_s16le', name + '.wav']);
       unlinkSync(name + '.pcm');
