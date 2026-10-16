@@ -19,7 +19,9 @@ import { spawnSync } from 'node:child_process';
 const [id, cmd, ...rest] = process.argv.slice(2);
 if (!id || !cmd) { console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n').filter(l => l.startsWith('//')).join('\n')); process.exit(0); }
 const M = JSON.parse(readFileSync(`videos/${id}.json`, 'utf8'));
-const V = M.voice || {}, LINES = V.lines || [], SR = 44100, FPS = 24;
+// the house voice: a manifest's voice.model / voice.voice / voice.language override these (older films pin Aoede on 3.1)
+const TTS = { model: 'gemini-3.8-flash-tts', voice: 'Tavi', language: 'cmn-CN' };
+const V = { ...TTS, ...(M.voice || {}) }, LINES = V.lines || [], SR = 44100, FPS = 24;
 const DIR = `assets/vo_${id}`, OUT = `out/${id}`, num = n => String(n).padStart(2, '0');
 const flags = Object.fromEntries(rest.filter(a => a.startsWith('--')).map(a => { const [k, v] = a.slice(2).split('='); return [k, v ?? true]; }));
 const nums = rest.filter(a => /^\d+$/.test(a)).map(Number);
@@ -94,16 +96,21 @@ ${scripts}
 
 } else if (cmd === 'tts') {
   // Gemini TTS on Vertex AI (express-mode key). Returns raw 16-bit LE PCM at 24 kHz; trimmed and resampled to 44.1 kHz.
+  // voice.notes (director's notes) are sent in the TTS prompt layout, which 3.8 keeps silent; a voice.style prefix is
+  // the older way and 3.8 often reads it aloud. A take far too long for its text is that leak (or a drawl): retried.
   mkdirSync(DIR, { recursive: true });
+  const prompt = l => V.notes ? `### DIRECTOR'S NOTES\n${V.notes}\n\n### TRANSCRIPT\n${l}` : (V.style || '') + l;
   const todo = LINES.map((_, i) => i + 1).filter(n => nums.length ? nums.includes(n) : !existsSync(`${DIR}/l${num(n)}.wav`));
   await Promise.all(todo.map(async n => {
-    const name = `${DIR}/l${num(n)}`;
-    for (let tryN = 0; tryN < 4; tryN++) {
-      const j = await vertex(V.model, { contents: [{ role: 'user', parts: [{ text: (V.style || '') + LINES[n - 1] }] }],
-        generationConfig: { responseModalities: ['AUDIO'], speechConfig: { languageCode: V.language, voiceConfig: { prebuiltVoiceConfig: { voiceName: V.voice } } } } });
+    const name = `${DIR}/l${num(n)}`, chars = LINES[n - 1].replace(/[，。：；？！“”、,.:;?!"\s]/g, '').length;
+    for (let tryN = 0; tryN < 5; tryN++) {
+      const j = await vertex(V.model, { contents: [{ role: 'user', parts: [{ text: prompt(LINES[n - 1]) }] }],
+        generationConfig: { responseModalities: ['AUDIO'], speechConfig: { languageCode: V.language, voiceConfig: { prebuiltVoiceConfig: { voiceName: V.voice } } } } }).catch(e => ({ error: String(e) }));
       const part = j.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
       if (!part) { console.log(`l${n}: ${JSON.stringify(j).slice(0, 200)} (retrying)`); await new Promise(ok => setTimeout(ok, 3000 * (tryN + 1))); continue; }
-      writeFileSync(name + '.pcm', Buffer.from(part.inlineData.data, 'base64'));
+      const raw = Buffer.from(part.inlineData.data, 'base64'), secs = raw.length / 2 / 24000;
+      if (secs > .4 * chars + 3 && tryN < 4) { console.log(`l${n}: ${secs.toFixed(1)} s for ${chars} characters, too long (retrying)`); continue; }
+      writeFileSync(name + '.pcm', raw);
       run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 's16le', '-ar', '24000', '-ac', '1', '-i', name + '.pcm',
         '-af', 'silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.05,areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.1,areverse',
         '-ar', String(SR), '-ac', '1', '-c:a', 'pcm_s16le', name + '.wav']);

@@ -1,0 +1,130 @@
+{
+  "id": "amnesia",
+  "title": "Pip讲消失的三年",
+  "duration": 384,
+  "bpm": 84,
+  "offset": 0,
+  "cast": [
+    "src/pip.js"
+  ],
+  "scenes": [
+    "src/scenes/mrna_kit.js",
+    "src/scenes/amnesia.js"
+  ],
+  "music": "music_amnesia.mjs",
+  "voice": {
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Tavi",
+    "language": "cmn-CN",
+    "keyFile": "tts_api_key.txt",
+    "notes": "Style: a warm, smart science-video narrator speaking Mandarin to high-school students, curious, as if solving a mystery together with the viewer. Clear and natural; leave a little suspense on questions; unhurried, natural pauses between sentences.\nPace: moderate.",
+    "lines": [
+      "你有整整三年的人生，完全没有记忆。可就在那三年里，你学会了走路、学会了说话，还认出了爸爸妈妈的脸。",
+      "那么，那些日子去哪儿了？是从来就没被存下来，还是存了，却再也打不开？这个问题，科学家吵了一百多年。",
+      "先说清楚：婴儿并不是什么都没记住。他们一刻不停地在学：认人脸、听母语，还摸清了“东西一松手，就会掉下去”。",
+      "可学会一项本领，和记住“某一天发生的某件事”，是两种记忆。后一种叫情景记忆：哪一天，在哪里，发生了什么。",
+      "技能和规律，你都留下了；丢掉的，偏偏是情景记忆。这个现象，有个名字，叫婴儿期遗忘。",
+      "情景记忆离不开大脑深处的一个结构：海马体，因为它弯弯的，像一只海马。课本上说，短时记忆就和这个脑区有关。",
+      "而海马体要很多年才能发育成熟。于是有了一个标准答案：婴儿的海马体太嫩，经历根本写不进去。不是忘了，是从来没存过。",
+      "这个解释听上去天衣无缝，流传了很多年。直到二零二五年，一群科学家决定：干脆直接去问婴儿本人。",
+      "可婴儿不会说话，怎么问？耶鲁大学的团队，让清醒的婴儿躺进核磁共振仪，一边扫描大脑，一边给他们看图片。",
+      "记没记住，看眼睛就知道：婴儿见过一次的图，再出现时，会被多看一会儿。看得越久，说明越熟悉。",
+      "结果发现：那些后来被记住的图片，当初出现时，海马体后部的活动明显更强。一岁以上的宝宝，这个信号尤其清楚。",
+      "也就是说，婴儿的海马体，已经在写入情景记忆了。存，是存了。那问题，就可能出在“取”上。",
+      "存进去的记忆，还能不能取出来？这得在小鼠身上试。还记得我们讲过的光开关吗？这一次，它派上了大用场。",
+      "多伦多的团队，让幼鼠记住一个可怕的地方；同时，给当时活跃的那一群神经元，装上了光控开关。",
+      "几周以后，长大的小鼠早就忘了，在那里毫不在意。可研究者用光一照那群神经元，它立刻僵住了：它认出来了。",
+      "后来，都柏林的团队更进一步：他们用人工手段“更新”了这段记忆痕迹，让丢失的婴儿期记忆，永久地回来了。",
+      "不过要说句公道话：光唤醒的记忆并不完整，说明早期记忆在储存上，也打了折扣。而且，这些都还只是小鼠。",
+      "回顾一下：婴儿的海马体会写入记忆；小鼠“忘掉”的记忆，用光还能唤醒。所以它们很可能没有消失，只是找不到了。",
+      "那为什么找不到？第一个猜测：大脑在高速施工。婴儿的海马体里，不断长出新的神经元，可能把旧的记忆回路，改了线。",
+      "在小鼠身上，研究者减慢了新神经元的生成，幼鼠的遗忘真的变少了。与此同时，突触也在大量形成，又被大量修剪。",
+      "课本上说，长时记忆可能与突触形态和功能的改变，以及新突触的建立有关。施工这么猛，旧线路很难原样保留。",
+      "第二个猜测：钥匙对不上。记忆存进去的时候，你还没有语言，也没有“我”的概念；长大后用语言和自我去找，格式可能根本对不上。",
+      "等等，你说你记得两岁时的事？二零一八年，一项调查收集了六千多人的最早记忆，近四成人说，它发生在两岁或更早。",
+      "研究者认为，这些记忆大多是后来重建的：拼进了家人讲的故事、看过的照片。它们感觉很真，却未必真的发生过。",
+      "所以，那消失的三年，也许一直都在你的脑子里。只是门锁着，钥匙，丢了。",
+      "而大脑的施工，还没有结束：到了青春期，大规模的突触修剪，还会再来一轮。那时候，大脑又在忙什么？我们下次再讲。"
+    ],
+    "starts": [
+      1.6,
+      14.96,
+      30.12,
+      44.44,
+      59.8,
+      73.04,
+      87.88,
+      102.68,
+      117.49,
+      131.81,
+      144.81,
+      159.41,
+      173.93,
+      187.21,
+      198.69,
+      212.57,
+      225.37,
+      238.93,
+      256.25,
+      271.49,
+      285.53,
+      300.81,
+      317.69,
+      334.33,
+      349.94,
+      362.9
+    ],
+    "show": {
+      "一百多年": "100多年",
+      "二零二五年": "2025年",
+      "二零一八年": "2018年",
+      "六千多人": "6000多人"
+    }
+  },
+  "audit": {
+    "ignore": [
+      {
+        "check": "overlap",
+        "key": "pip:pc",
+        "from": 70,
+        "to": 90,
+        "why": "Pip hosts from the bottom-left corner while the camera is pushed into the brain cutaway"
+      },
+      {
+        "check": "clip",
+        "key": "pip:bd",
+        "from": 116,
+        "to": 131,
+        "why": "baby Pip lies rotated on the scanner bed; the audit box does not follow the rotation"
+      },
+      {
+        "check": "overlap",
+        "key": "pip:bd",
+        "from": 116,
+        "to": 131,
+        "why": "baby Pip lies rotated on the scanner bed; the audit box does not follow the rotation"
+      },
+      {
+        "check": "clip-bottom",
+        "key": "pip:dbe",
+        "from": 131,
+        "to": 145,
+        "why": "the close-up from inside the scanner frames only the baby face and shoulders"
+      },
+      {
+        "check": "",
+        "key": "pip:phbgph",
+        "from": 338,
+        "to": 343,
+        "why": "the tiny baby inside the photo that flies in from the top"
+      },
+      {
+        "check": "clip-bottom",
+        "key": "pip:ph",
+        "from": 353,
+        "to": 358,
+        "why": "the camera pushes into the keyhole and back out"
+      }
+    ]
+  }
+}

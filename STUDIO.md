@@ -50,8 +50,12 @@ In the manifest:
 - `title` is `Pip讲<中文主题>`. It names the MP4, the captions and the cover.
 - `cast` is `["src/pip.js"]`. `scenes` is `["src/scenes/mrna_kit.js", "src/scenes/<id>.js"]`, so the kit (`MK`) is
   always there.
-- Copy `voice` from meiosis and change `lines`, `starts` and `show`. Keep the model, the voice (Aoede), the language and
-  the style prompt unless the person asks otherwise; adjust the audience in the style prompt if it changes.
+- Copy `voice` from [videos/amnesia.json](videos/amnesia.json) and change `lines`, `starts` and `show`. It uses the house
+  voice, `"model": "gemini-3.8-flash-tts"` and `"voice": "Tavi"` (also make.mjs's default), and gives its direction as
+  **`notes`**, not `style`: `notes` are director's notes (who is speaking, to whom, the mood, the pace), which make.mjs
+  sends in the TTS prompt layout (`### DIRECTOR'S NOTES` … `### TRANSCRIPT`). Gemini 3.8 often reads a `style` prefix
+  aloud as part of the take, so don't use `style` on 3.8. Keep the language and adjust the notes' audience if it changes.
+  The films up to maize keep Aoede on 3.1 with `style`; leave them as they are.
 
 ## The order of work: the script comes first
 
@@ -61,7 +65,8 @@ The narration is the spine of the film. Pictures are timed to the voice, not the
 2. **Write the lines** in Chinese, into `voice.lines` (STYLE.md, "Sound and voice": one idea per line, 40–75
    characters, written the way it should be *said*, one concrete hook per section). Show them to the person before
    you go on.
-3. **Voice:** `node make.mjs <id> tts` → `listen` (optional) → `pauses` → set `voice.starts` (gaps from STYLE.md's
+3. **Voice:** `node make.mjs <id> tts` (it retries a take that runs far too long for its text, the sign of spoken notes)
+   → `listen` (worth running on 3.8: it catches ad-libs like an added 啊 or 诶; regenerate those lines) → `pauses` → set `voice.starts` (gaps from STYLE.md's
    calibration) → set `duration` (the last line's end plus time for the ending to land) → `node make.mjs <id> vo`.
    `vo` writes `src/scenes/<id>_vo_env.js` (`VO_STARTS`, `voAt`), which the page loads: run it before you build.
 4. **Storyboard** `STORYBOARD_<ID>.md`, timed to the measured starts. You can draft it alongside the lines, but its

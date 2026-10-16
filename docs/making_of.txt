@@ -1,0 +1,378 @@
+% making_of.tex —— 《Pip 的动画工坊》的 LaTeX 版本。用 XeLaTeX 编译：xelatex making_of.tex
+\documentclass[UTF8,a4paper,11pt]{ctexart}
+\usepackage{amsmath,amssymb,amsthm,mathtools,bm}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\newtheorem{definition}{定义}[section]
+\newtheorem{theorem}[definition]{定理}
+\newtheorem{lemma}[definition]{引理}
+\newtheorem{proposition}[definition]{命题}
+\newtheorem{corollary}[definition]{推论}
+\theoremstyle{remark}
+\newtheorem*{remark}{注}
+
+\newcommand{\Pip}{\mathfrak{P}}
+\newcommand{\Frame}{\mathcal{F}}
+\newcommand{\Shot}{\mathcal{S}}
+\newcommand{\Real}{\mathbb{R}}
+\newcommand{\Nat}{\mathbb{N}}
+\newcommand{\Paint}{\operatorname{Paint}}
+\newcommand{\Ink}{\operatorname{Ink}}
+\newcommand{\seg}{\operatorname{seg}}
+\newcommand{\ease}{\operatorname{ease}}
+\newcommand{\hash}{\operatorname{hash}}
+\newcommand{\Audit}{\operatorname{Audit}}
+\newcommand{\dd}{\,\mathrm{d}}
+
+\title{论一类手绘风格科普动画的泛函构造\\[4pt]\large ——以《Pip讲消失的三年》为例}
+\author{Claude\thanks{一个 AI。本文所述一切，均可由一句话概括：“我写程序，电脑画画。”}}
+\date{2026 年 10 月}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+本文给出一部时长 $T = 384\,\mathrm{s}$ 的中文科普动画的完整数学构造。我们证明：在不调用任何外部图像或音频样本（即素材集合 $\mathcal{A} = \varnothing$）的条件下，存在一个从时间轴到像素空间的映射
+\[
+  \Frame \colon [0, T] \longrightarrow [0,1]^{1920 \times 1080 \times 3},
+\]
+使得其在离散采样格点 $\{k/24\}_{k=0}^{9215}$ 上的像，在人类观众的主观度量下与“手绘水彩课本”几乎处处不可区分。我们进一步构造了一个同样不依赖外部样本的声学泛函 $\mathcal{M}$，并给出检查算子 $\Audit$ 的不动点刻画。本文所有结论均已在一台笔记本电脑上通过约 $50$ 分钟的数值实验验证。
+\end{abstract}
+
+\tableofcontents
+
+%======================================================================
+\section{引言与问题的提出}
+
+设 $\mathcal{H}$ 为人类全部经历组成的集合，赋予自然的时间序 $\preceq$。定义映射 $\mu \colon \mathcal{H} \to \{0, 1\}$，其中 $\mu(h) = 1$ 当且仅当经历 $h$ 在成年后可被提取。经验事实表明
+\begin{equation}\label{eq:amnesia}
+  \mu(h) = 0, \qquad \forall\, h \ \text{满足}\ t(h) \in [0, 3)\ \text{年},
+\end{equation}
+即“你有整整三年的人生，完全没有记忆”。这句话由人类合作者给出，作为全片的初始条件，在后续一切变换下保持不变：
+\begin{equation}
+  \frac{\partial}{\partial(\text{修改})}\;\text{开场白} \equiv 0 .
+\end{equation}
+
+本文的任务并非解释式~\eqref{eq:amnesia}（那是影片本身的工作），而是回答一个元问题：\emph{这样一部解释式~\eqref{eq:amnesia} 的影片，是如何被构造出来的？}
+
+%======================================================================
+\section{选题与事实的收敛性}
+
+\begin{definition}[选题算子]
+选题算子 $\Theta$ 是一个由人类合作者实现的、不可微的映射，其值域为一句话。
+\end{definition}
+
+设参考资料给出命题族 $\{p_i\}_{i=1}^{n}$。对每个 $p_i$，我们以原始报道为观测，构造后验
+\begin{equation}
+  \Pr\bigl(p_i \bigm| \text{原始报道}\bigr) = \frac{\Pr(\text{原始报道} \mid p_i)\,\Pr(p_i)}{\sum_{q \in \{p_i, \neg p_i\}} \Pr(\text{原始报道} \mid q)\,\Pr(q)} .
+\end{equation}
+
+\begin{proposition}[都柏林修正]
+令 $p_\star$ 为命题“永久找回婴儿期记忆的是多伦多团队”。则
+\[
+  \Pr\bigl(p_\star \bigm| \text{原始报道}\bigr) \approx 0,
+\]
+且存在唯一的修正 $p_\star' = $“是都柏林团队（Power 等，2023）”，使得 $\Pr(p_\star' \mid \cdot) \to 1$。
+\end{proposition}
+
+\begin{proof}
+查阅原始报道即得。
+\end{proof}
+
+%======================================================================
+\section{旁白：作为骨架的离散测度}
+
+旁白文本被切分为 $N = 26$ 句，记第 $i$ 句的起始时刻为 $s_i$，时长为 $d_i$。全片的“骨架”是如下离散测度：
+\begin{equation}
+  \nu = \sum_{i=1}^{26} d_i\, \delta_{s_i} .
+\end{equation}
+相邻两句之间的间隔 $g_i = s_{i+1} - (s_i + d_i)$ 满足分段约束
+\begin{equation}\label{eq:gaps}
+  g_i \in
+  \begin{cases}
+    [1.2,\, 1.6]\ \mathrm{s}, & \text{同一段落之内},\\
+    [3.0,\, 3.4]\ \mathrm{s}, & \text{段落切换处},\\
+    [3.6,\, 4.2]\ \mathrm{s}, & \text{回顾之后或结尾之前}.
+  \end{cases}
+\end{equation}
+
+\begin{definition}[悬念泛函]
+对开场段落 $[0, s_3)$，定义悬念泛函
+\[
+  \mathcal{J}[\text{开场}] = \int_{0}^{s_{12}} \Bigl(1 - \mathbf{1}_{\{\text{答案已揭晓}\}}(t)\Bigr) \dd t .
+\]
+\end{definition}
+
+\begin{theorem}[悬念最大化]
+在约束“答案必须在第 12 句揭晓”下，$\mathcal{J}$ 取得其上确界 $s_{12} \approx 159.4\,\mathrm{s}$。
+\end{theorem}
+
+\begin{remark}
+直观地说：观众足足被吊了两分半钟胃口，没有理由划走。
+\end{remark}
+
+%======================================================================
+\section{分镜：颜色流形上的一条路径}
+
+令 $\mathcal{C} \subset [0,1]^3$ 为 RGB 色彩空间中“柔和、无纯黑纯白”的子流形：
+\begin{equation}
+  \mathcal{C} = \bigl\{\, \bm{c} \in [0,1]^3 \;:\; \varepsilon \le c_j \le 1 - \varepsilon,\ j = 1,2,3 \,\bigr\}, \qquad \varepsilon > 0 .
+\end{equation}
+分镜赋予每个镜头 $\Shot_k$ 一个底色 $\bm{c}_k \in \mathcal{C}$，全片的\emph{颜色弧}是分段常值路径 $\gamma \colon [0,T] \to \mathcal{C}$：
+\[
+  \gamma \colon
+  \underbrace{\text{暖杏}}_{\text{家}} \to
+  \underbrace{\text{桃粉}}_{\text{育儿板}} \to
+  \underbrace{\text{淡紫}}_{\text{大脑}} \to
+  \underbrace{\text{冷青}}_{\text{诊所}} \to
+  \underbrace{\text{沙色}}_{\text{实验室}} \to
+  \underbrace{\text{奶油}}_{\text{回顾}} \to
+  \underbrace{\text{赭黄}}_{\text{工地}} \to
+  \underbrace{\text{棕褐}}_{\text{相册}} \to
+  \underbrace{\text{金色}}_{\text{家}} .
+\]
+
+\begin{proposition}[首尾押韵]
+$\gamma(0)$ 与 $\gamma(T)$ 属于同一色相等价类，且 $\gamma(T)$ 的明度严格大于 $\gamma(0)$ 的明度。
+\end{proposition}
+
+\begin{definition}[记忆珍珠]
+记忆珍珠是一个三元组 $\pi = (\bm{x}, r, v)$，其中 $\bm{x} \in \Real^2$ 为位置，$r > 0$ 为半径，$v \in V \cup \{\varnothing\}$ 为内部的微缩画面。若 $v = \varnothing$，称 $\pi$ 为\emph{空白珍珠}。
+\end{definition}
+
+全片的主线道具是一串珍珠 $(\pi_j)_{j=0}^{12}$，满足
+\begin{equation}
+  v_j = \varnothing \iff j \ge 10 ,
+\end{equation}
+即最早的三颗是空的。在终镜头中，我们构造一个钥匙孔形状的掩模 $K \subset \Real^2$，并证明在 $K$ 的内部 $v_j \ne \varnothing$ 对所有 $j$ 成立。
+
+%======================================================================
+\section{画面：作为时间的纯函数}
+
+\subsection{基本假设}
+
+\begin{definition}[纯帧映射]
+一个镜头是一个映射 $\Shot \colon (t, \ell, D) \mapsto \text{图像}$，其中 $t$ 为全片时间，$\ell$ 为镜头内时间，$D$ 为镜头时长。我们要求 $\Shot$ 是\emph{纯}的：
+\begin{equation}
+  \Shot(t_1) = \Shot(t_2) \quad \text{当}\quad t_1 = t_2,
+\end{equation}
+且 $\Shot(t)$ 不依赖于任何 $\Shot(t')$，$t' \ne t$。
+\end{definition}
+
+\begin{theorem}[并行渲染定理]
+若每个镜头都是纯的，则帧集合 $\{\Frame(k/24)\}_{k=0}^{9215}$ 可被划分给任意 $w$ 个工作进程以任意顺序计算，总耗时
+\begin{equation}
+  \tau_{\text{总}} \approx \frac{9216 \cdot \bar\tau}{w}, \qquad \bar\tau \approx 0.3\ \mathrm{s},\ w = 6,
+\end{equation}
+即约 $46$ 分钟。
+\end{theorem}
+
+\begin{proof}
+纯性意味着各帧之间不存在数据依赖，故计算图是 $9216$ 个孤立顶点，其色数为 $1$。
+\end{proof}
+
+\subsection{缓动}
+
+定义区间进度函数与三次缓动（smoothstep）：
+\begin{align}
+  \seg(t; a, b) &= \min\Bigl\{1,\, \max\Bigl\{0,\, \frac{t - a}{b - a}\Bigr\}\Bigr\}, \\
+  \ease(x) &= 3x^2 - 2x^3 .
+\end{align}
+注意 $\ease'(0) = \ease'(1) = 0$，即起步和停止时速度为零。一个从 $x_0$ 移动到 $x_1$ 的物体，其位置为
+\begin{equation}
+  x(t) = x_0 + (x_1 - x_0)\, \ease\bigl(\seg(t; t_0, t_1)\bigr) .
+\end{equation}
+
+\begin{lemma}[反机器人引理]
+若以线性插值 $\ease(x) = x$ 代替上式，则速度 $\dot x$ 在 $t_0$ 与 $t_1$ 处不连续，观众主观上会将该物体识别为“机器人”。
+\end{lemma}
+
+对于带有过冲的到达，我们使用
+\begin{equation}
+  \operatorname{backOut}(x) = 1 + (s + 1)(x - 1)^3 + s\,(x - 1)^2, \qquad s = 1.9 .
+\end{equation}
+碰撞之后的余震由阻尼振子描述：
+\begin{equation}
+  \operatorname{spring}(t; t_0) = \mathbf{1}_{t \ge t_0}\; e^{-k (t - t_0)} \sin\bigl(\omega (t - t_0)\bigr), \qquad k = 6,\ \omega = 18 .
+\end{equation}
+
+\subsection{线条的“沸腾”}
+
+手绘动画每张画都是重新描的，线条因此轻微抖动。我们以如下方式离散地模拟这一现象。令沸腾频率 $\beta = 12\ \mathrm{Hz}$，定义沸腾帧号
+\begin{equation}
+  n_\beta(t) = \lfloor \beta t \rfloor .
+\end{equation}
+对每一个画面元素 $e$（以字符串键 $\kappa_e$ 标识），其随机种子取为 FNV 型散列
+\begin{equation}
+  \sigma_e(t) = \bigoplus_{c \,\in\, \kappa_e \Vert\, n_\beta(t)} \bigl(h \oplus c\bigr) \cdot 16777619 \pmod{2^{32}}, \qquad h_0 = 2166136261 .
+\end{equation}
+
+\begin{proposition}[沸腾的局部性]
+若元素 $e$ 静止，则 $\Ink_e(t)$ 在每个区间 $[\,m/\beta,\,(m+1)/\beta)$ 上为常值，与画面中其他元素是否运动无关。
+\end{proposition}
+
+\begin{proof}
+$\sigma_e$ 仅依赖于 $\kappa_e$ 与 $n_\beta(t)$，不依赖于其他元素消耗的随机数个数。
+\end{proof}
+
+\subsection{水彩笔触}
+
+每一个形状由点列 $P = (\bm{p}_1, \dots, \bm{p}_m)$ 给出，绘制算子
+\begin{equation}
+  \Paint(P) = \underbrace{\mathcal{W}(P)}_{\text{平涂}} \;\oplus\; \underbrace{\mathcal{B}_{\text{bleed}, \text{tex}}(P)}_{\text{水彩晕染}} \;\oplus\; \underbrace{\Ink(\partial P)}_{\text{墨线}} ,
+\end{equation}
+其中 $\oplus$ 为颜料式（减色）混合。特别地，对于黄色 $\bm{y}$ 与蓝色 $\bm{b}$，
+\begin{equation}
+  \bm{y} \oplus \bm{b} \approx \text{绿色}, \qquad \text{而非} \quad \bm{y} + \bm{b} .
+\end{equation}
+因此一切发光体须以加性算子 $\operatorname{glow}$ 单独处理：
+\begin{equation}
+  \operatorname{glow}(\bm{x}_0, r)(\bm{x}) = \bm{c} \cdot g\bigl(\lVert \bm{x} - \bm{x}_0 \rVert / r\bigr), \qquad g(0) = 1,\ g(1) = 0 .
+\end{equation}
+
+\subsection{细长形体：带状构造}
+
+尾巴、神经元的树突、海马体的弯曲身体，都由沿一条 Catmull--Rom 样条 $\bm{c}(u)$ 的变宽带状区域给出：
+\begin{equation}
+  \partial R = \Bigl\{\, \bm{c}(u) \pm \tfrac{1}{2} w(u)\, \bm{n}(u) \;:\; u \in [0, 1] \,\Bigr\}, \qquad w(u) = (1 - u)\, w_0 + u\, w_1 ,
+\end{equation}
+其中 $\bm{n}(u)$ 为单位法向量。海马体的情形取 $w_0 = 46s$，$w_1 = 10s$，并令其尾端卷曲为近似的对数螺线
+\begin{equation}
+  \rho(\theta) = a\, e^{b\theta}, \qquad b < 0 .
+\end{equation}
+
+\begin{remark}
+一只真正的海马被构造为同一条曲线乘以 $0.9$ 的缩放，再加上背鳍。两者形状同构，这正是“海马体”得名的原因。
+\end{remark}
+
+%======================================================================
+\section{配乐：无样本合成}
+
+\begin{definition}[无样本性]
+称一段音频 $a(t)$ 是\emph{无样本的}，若它可以写成有限个初等函数的有限组合，且不引用任何录音。
+\end{definition}
+
+本片配乐的所有乐器均满足无样本性。
+
+\subsection{毛毡钢琴}
+\begin{equation}
+  a_{\text{piano}}(t) = \sum_{k \in \{1,\, 2.003,\, 3.01,\, 4.02\}} A_k \sin(2\pi k f t)\, \exp\!\Bigl(-\frac{t}{\tau_k (1 + f/900)}\Bigr) + \eta(t)\, e^{-60 t},
+\end{equation}
+其中 $\eta$ 为低通滤波后的白噪声，模拟毛毡击弦的那一下“噗”。
+
+\subsection{玻璃琴（记忆珍珠）}
+\begin{equation}
+  a_{\text{glass}}(t) = \min\Bigl\{1, \frac{t}{0.35}\Bigr\}\Bigl[\sin(2\pi f t) + 0.3\,\bigl(1 + 0.3\sin(2\pi \cdot 4.5\, t)\bigr)\sin(2\pi \cdot 2.001 f t) + 0.12 \sin(2\pi \cdot 3.002 f t)\Bigr] .
+\end{equation}
+$2.001$ 与 $3.002$ 中多出来的千分之一，使泛音之间产生缓慢的拍频，听起来像玻璃一样“晃”。
+
+\subsection{低音弦乐}
+以有限傅里叶级数逼近锯齿波：
+\begin{equation}
+  a_{\text{str}}(t) = \sum_{k=1}^{7} \frac{\lambda_k}{k} \sin\bigl(2\pi k f (1 + 0.003 \sin(10\pi t + \phi)) t + k\phi\bigr), \qquad \lambda_k = \begin{cases} 1, & k \le 4 \\ \tfrac12, & k > 4 \end{cases}
+\end{equation}
+
+\subsection{双簧管：回顾主题}
+回顾主题是 F 大调上的六个音
+\begin{equation}
+  \mathbf{m} = (69, 70, 72, 70, 69, 65), \qquad \mathbf{b} = \bigl(\tfrac34, \tfrac14, 1, \tfrac12, \tfrac12, \tfrac{8}{5}\bigr)\ \text{拍},
+\end{equation}
+音高由 MIDI 编号经 $f(m) = 440 \cdot 2^{(m - 69)/12}\ \mathrm{Hz}$ 换算。每当画面中出现“回顾一下”，这六个音便重复一次，使听觉形成条件反射：
+\begin{equation}
+  \lim_{n \to \infty} \Pr\bigl(\text{观众意识到这是总结} \bigm| \text{第 } n \text{ 次听到 } \mathbf{m}\bigr) = 1 .
+\end{equation}
+
+\subsection{混响}
+四个并联的反馈梳状滤波器后接两个串联的全通滤波器：
+\begin{align}
+  y_c[n] &= x[n - D_c] + g\, \tilde y_c[n - D_c], \quad \tilde y_c = 0.65\, y_c + 0.35\, \tilde y_c[\cdot - 1], \quad g = 0.83,\\
+  H_{\text{ap}}(z) &= \frac{-\tfrac12 + z^{-D}}{1 - \tfrac12 z^{-D}}, \qquad D \in \{589, 467\} .
+\end{align}
+左右声道的延迟相差 $29$ 个样本，以获得空间感。
+
+%======================================================================
+\section{检查：审核算子及其不动点}
+
+\begin{definition}[审核算子]
+对帧 $\Frame(t)$，定义四个指标：
+\begin{align}
+  \rho_{\text{paper}}(t) &= \frac{\#\{\text{露出白纸的像素}\}}{\#\{\text{全部像素}\}}, \\
+  \chi_{\text{clip}}(t) &= \mathbf{1}\bigl\{\operatorname{bbox}(\Pip) \not\subseteq [0, 1920] \times [0, 1080]\bigr\}, \\
+  \chi_{\text{small}}(t) &= \mathbf{1}\bigl\{ \operatorname{height}(\Pip) < 90\ \mathrm{px} \bigr\}, \\
+  \chi_{\text{overlap}}(t) &= \mathbf{1}\Bigl\{ \max_{\text{道具 } q} \frac{|\operatorname{bbox}(\Pip) \cap \operatorname{bbox}(q)|}{|\operatorname{bbox}(\Pip)|} > \tfrac14 \Bigr\}.
+\end{align}
+审核算子 $\Audit$ 以步长 $\Delta t = 0.5\ \mathrm{s}$ 对全片采样，返回所有违规区间的并集。
+\end{definition}
+
+\begin{theorem}[无字定理]
+设 $\mathcal{T}$ 为画面中文字像素的集合。则对一切 $t \in [0, T]$，
+\begin{equation}
+  \mathcal{T}\bigl(\Frame(t)\bigr) = \varnothing .
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+反设存在 $t$ 使 $\mathcal{T} \neq \varnothing$。则该帧要么举着写有“我迷路了”的牌子，要么贴了标签。二者均违反系列规则，该帧会被打回重画，与 $\Frame(t)$ 属于成片矛盾。
+\end{proof}
+
+\begin{corollary}
+字幕不在画面之内，而存在于一个独立的 \texttt{.srt} 文件 $\Sigma$ 中，且 $\Sigma \cap \Frame = \varnothing$。
+\end{corollary}
+
+\begin{proposition}[迭代收敛]
+令 $\mathcal{R}$ 为“截图—检查—修改”算子。经验上，对每个镜头 $\Shot_k$ 存在 $n_k \le 3$ 使
+\begin{equation}
+  \mathcal{R}^{\,n_k}(\Shot_k) = \mathcal{R}^{\,n_k + 1}(\Shot_k),
+\end{equation}
+即每个镜头在至多三轮修改后达到不动点。本片中，审核算子在第一次运行时报告了 $11$ 个区间，其中 $1$ 个（突触特写的镜头上方露出了白纸）为真实缺陷，其余 $10$ 个均为有意为之，并被写入忽略表。
+\end{proposition}
+
+%======================================================================
+\section{渲染与合成}
+
+最终成片为
+\begin{equation}
+  \mathcal{V} = \operatorname{encode}\Bigl( \bigl\{\Frame(k/24)\bigr\}_{k=0}^{9215},\ \mathcal{M} \Bigr),
+\end{equation}
+分辨率 $1920 \times 1080$，帧率 $24$，时长
+\begin{equation}
+  T = \frac{9216}{24}\ \mathrm{s} = 384\ \mathrm{s} = 6\ \text{分}\ 24\ \text{秒} .
+\end{equation}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lr}
+\hline
+量 & 值 \\
+\hline
+片长 & $384\ \mathrm{s}$ \\
+画面张数 & $9216$ \\
+旁白句数 & $26$ \\
+“画画”的程序行数 & $932$ \\
+“作曲”的程序行数 & $230$ \\
+外部图片或音频素材 & $|\mathcal{A}| = 0$ \\
+\hline
+\end{tabular}
+\caption{《Pip讲消失的三年》的基本不变量。}
+\end{table}
+
+%======================================================================
+\section{结论}
+
+我们构造性地证明了：一部手绘风格的科普动画，可以被完全写成时间的函数。
+
+\begin{theorem}[主定理]
+存在一个仅由选题算子 $\Theta$（人类给出）与若干行程序（AI 给出）决定的映射，使得
+\begin{equation}
+  \Theta\bigl(\text{“你有整整三年的人生，完全没有记忆”}\bigr) \;\longmapsto\; \mathcal{V},
+\end{equation}
+且 $\mathcal{V}$ 中的每一帧、每一个音符都可以被精确地重新计算出来。
+\end{theorem}
+
+\begin{remark}
+用人话说：人出一个好问题，我把它写成程序，电脑把它画出来、弹出来。至于这一切到底在讲什么，请去看片子。
+\end{remark}
+
+\end{document}
