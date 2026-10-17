@@ -4,3 +4,4 @@ tts_api_key.txt
 .DS_Store
 assets/*.wav
 assets/vo_*/old/
+tts_api_key.txt

@@ -15,8 +15,8 @@ in [docs/STYLE.md](docs/STYLE.md).
   the science right.
 - **Length:** 3–5 minutes so far (177–290 s), 13–22 narration lines, 84–96 bpm.
 - **Sound:** a Mandarin narration (Gemini TTS) over a score synthesised from scratch for that film.
-- **Look:** hand-painted textbook, the same series look every time (docs/STYLE.md). No text on screen; the captions
-  live in the `.srt`.
+- **Look:** hand-painted textbook, the same series look every time (docs/STYLE.md). No text on screen (the cover is
+  the one exception); the captions live in the `.srt`.
 
 The person prompting you picks the topic. If they ask for something outside this (a short, a different host, another
 language), do what they ask.
@@ -117,12 +117,35 @@ piano, marimba, harp and flute).
 
 - `out/<id>/<title>.mp4`: 1920×1080, 24 fps, with the mix.
 - `out/<id>/<title>.srt` (`make.mjs <id> srt`).
-- The cover: a still from `LOOPS.cover` in your scene,
-  `node render.mjs --page=<id>.html --loop=cover --stills=.5 --out=out/<id>/cover`, saved as
-  `out/<id>/<title>_封面.png`.
+- Two covers, both following "Covers and titles" below: 16:9 from `LOOPS.cover` and 4:3 from `LOOPS.cover43` (composed
+  for the centre 1440 × 1080 of the frame, then cropped `crop=1440:1080:240:0`). Render each with
+  `node render.mjs --page=<id>.html --loop=cover --stills=.5 --out=out/<id>/cover/c169` (and `cover43`), saved as
+  `out/<id>/<title>_封面.png` and `out/<id>/<title>_封面_4比3.png`. Worked example: the covers in src/scenes/amnesia.js.
 - The film's source in git: the manifest, the storyboard, the scene, the music script and `assets/vo_<id>/`, plus the
   small generated page, config and `<id>_vo_env.js`, so the page opens from a fresh clone. The generated WAVs and
   everything in `out/` are gitignored. Commit only when the person asks.
+
+## Covers and titles (封标)
+
+The film itself has no text on screen; the cover is the one exception. These are the person's rules (weights in
+brackets). The `title` field keeps the series name (`Pip讲<主题>`); the Bilibili upload title is proposed separately.
+
+**Title (标题)**
+1. Contains "！" and/or "？". *HIGH*
+2. Is about the viewer: it says "你". *HIGH*
+3. Is a little unclear, odd, or obviously has a story behind it. *MEDIUM*
+4. If it has two elements, they make an unexpected contrast. *MEDIUM*
+
+**Cover (封面)**
+1. **One** main character, at least 20% of the cover's area (35% or more is better, 60% or more is best: big
+   matters). Everything else is small, and no more than 4 other characters or objects. *HIGH*
+2. It has text, at most 10 characters. If more are truly needed, use different colours or fonts to separate the
+   parts (or for emphasis). "！" and "？" are recommended.
+3. The text never fills the cover's width or height: leave at least 10% of breathing room on both axes. *MEDIUM*
+4. Keep the bottom 20% free of text: Bilibili shows the play count and other data there. *HIGH*
+
+Bilibili needs two covers, 16:9 and 4:3 (see "Done means"). For cover text, the system font 翩翩体 (`HanziPen SC`,
+bold) suits the hand-painted look; draw it with `letter()` and an ink stroke.
 
 ## House rules
 

@@ -917,16 +917,56 @@
     if (out > 0) iris(at[0], at[1], lerp(1400, 0, easeIn(out)));
   }
 
+  // The covers (the house rules for covers: one big subject, under 10 characters, 10% margins, the bottom 20% kept clear
+  // for Bilibili's play counts). cover = 16:9; cover43 is composed for the centre 1440 × 1080 and cropped to 4:3.
+  const COVER_FONT = '"HanziPen SC", "Wawati SC", "PingFang SC", sans-serif';
+  const measure = (txt, size) => { const c = (measure.c ||= document.createElement('canvas').getContext('2d')); c.font = `bold ${size}px ${COVER_FONT}`; return c.measureText(txt).width; };
+  function coverText(x, y, size, parts) {                         // one line of mixed colours, left-aligned at x, centred on y
+    let cx = x;
+    for (const [txt, col, k = 1] of parts) { const sz = size * k, w = measure(txt, sz);
+      letter(txt, cx, y, sz, col, { screen: true, align: 'left', font: `bold ${sz}px ${COVER_FONT}`, stroke: PAL.ink }); cx += w + size * .02; }
+  }
+  // a baby photo: an instant-photo frame, baby Pip laughing behind a one-candle birthday cake
+  function babyPhoto(cx, cy, w, ang, t, key) {
+    const h = w * 1.18, iw = w * .86, ih = iw * .92;
+    push(); translate(cx, cy); rotate(ang);
+    boilSeed('bpf' + key);
+    paint(rectPts(-w / 2 + 14, -h / 2 + 18, w, h), { wash: 'rgba(43,34,51,.25)', ink: null });
+    paint(rectPts(-w / 2, -h / 2, w, h), { wash: '#FFFBF2', ink: PAL.ink, sw: 2.2 });
+    const top = -h / 2 + (w - iw) / 2;
+    paint(rectPts(-iw / 2, top, iw, ih), { wash: '#F6C3CF', ink: PAL.ink, sw: 1.4 });
+    for (let i = 0; i < 6; i++) { boilSeed('bpb' + key + i); paint(ellPts(-iw / 2 + (i + .5) * iw / 6, top + ih * .16 + 8 * (i % 2), 14, 14, 10), { wash: ['#F2C14A', '#8EC3E6', '#FFFBF2'][i % 3], ink: null }); }
+    baby(-iw * .14, top + ih * .98, iw * .118, { ...pipFeel('laugh', .4, { seed: 2 }), emote: null, noShadow: true }, 'bpb' + key);
+    boilSeed('bpc' + key);
+    const cxk = iw * .27, cy0 = top + ih * .97, cw = iw * .3;
+    paint(rectPts(cxk - cw / 2, cy0 - cw * .45, cw, cw * .45), { wash: '#FBEFD6', ink: PAL.ink, sw: 1.6 });
+    inkLine([[cxk - cw / 2, cy0 - cw * .3], [cxk, cy0 - cw * .22], [cxk + cw / 2, cy0 - cw * .3]], 4, '#E2708C', 'ink', .5);
+    paint(rectPts(cxk - 6, cy0 - cw * .45 - 46, 12, 46), { wash: '#7FB6E0', ink: PAL.ink, sw: 1 });
+    paint(ellPts(cxk, cy0 - cw * .45 - 60, 10, 15, 10), { wash: '#F4B43C', ink: null });
+    pop();
+  }
+  function coverArt(t, o) {
+    bigBg('#8FCFCB', '#BEE5DF', t, 'cv');
+    for (let i = 0; i < 14; i++) { boilSeed('ray' + i); const a = i / 14 * TAU, r0 = 120, r1 = 1600, w = .09;
+      paint([[o.pip[0] + Math.cos(a - w) * r0, o.pip[1] - 3 * o.u + Math.sin(a - w) * r0], [o.pip[0] + Math.cos(a - w) * r1, o.pip[1] - 3 * o.u + Math.sin(a - w) * r1], [o.pip[0] + Math.cos(a + w) * r1, o.pip[1] - 3 * o.u + Math.sin(a + w) * r1], [o.pip[0] + Math.cos(a + w) * r0, o.pip[1] - 3 * o.u + Math.sin(a + w) * r0]], { wash: '#B5E2DB', ink: null }); }
+    glow(o.pip[0] - 40, o.pip[1] - 3 * o.u, 4 * o.u, '#FFF3C8', .5);
+    babyPhoto(o.photo[0], o.photo[1], o.photo[2], -.1, t, 'cv');
+    pip(o.pip[0], o.pip[1], o.u, { ...pipFeel('wow', 1.3), face: 'wow', emote: null, lookX: -1, lookY: .45, armF: [.05, 2.0], armB: [.25, 1.4], leaf: -.45, blush: .6, flip: true, noShadow: true, weight: 1.3, key: 'cvpip' });
+    flushLetters();
+  }
   LOOPS.cover = t => {
-    cam(-240, 600, 1.35);
-    homeBg(t, 'cv', 1);
-    door(DOOR_H[0], DOOR_H[1], 1.6, { key: 'cvd', frame: '#A8643C' });
-    glow(DOOR_H[0] + 170 * 1.6 * .28, DOOR_H[1] - 300 * 1.6 * .5, 60, '#FFD98A', .9);
-    string(STR.slice(7).map(([x, y, v, b]) => [x, y - 170, v, b]), 60, t, 'cv');
-    pip(150, 862, 50, { ...pipFeel('confused', t), lookX: -.9, lookY: -.7, flip: true, key: 'cvp' });
-    camEnd();
+    coverArt(t, { pip: [1480, 1620], u: 262, photo: [470, 820, 410] });
+    coverText(205, 255, 190, [['3年', Z.gold, 1.15], ['人生', PAL.cream]]);
+    coverText(205, 480, 190, [['0', '#E8524A', 1.2], ['记忆！？', PAL.cream]]);
   };
   LOOPS.cover.len = 2;
+  LOOPS.cover43 = t => {                                          // crop x 240..1680 afterwards
+    coverArt(t, { pip: [1410, 1575], u: 236, photo: [505, 845, 350] });
+    coverText(240 + 150, 245, 158, [['3年', Z.gold, 1.15], ['人生', PAL.cream]]);
+    coverText(240 + 150, 440, 158, [['0', '#E8524A', 1.2], ['记忆！？', PAL.cream]]);
+  };
+  LOOPS.cover43.len = 2;
+
 
   shots([[0, shotA], [L(3, -1.7), shotB], [L(6, -1.45), shotC], [L(9, -1.3), shotD], [L(13, -1.5), shotE], [L(18, -.7), shotR], [L(19, -1.85), shotF], [L(23, -1.9), shotG], [L(25, -1.75), shotH]]);
 })();
