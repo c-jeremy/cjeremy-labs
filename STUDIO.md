@@ -48,7 +48,7 @@ Use only the engine files these docs name. Some files in `src/` aren't for these
 
 In the manifest:
 - `title` is `Pip讲<中文主题>`. It names the MP4, the captions and the cover.
-- `cast` is `["src/pip.js"]`. `scenes` is `["src/scenes/mrna_kit.js", "src/scenes/<id>.js"]`, so the kit (`MK`) is
+- `cast` is `["src/pip.js", "src/pip_toon.js"]` (Pip and its slapstick kit, `TOON`). `scenes` is `["src/scenes/mrna_kit.js", "src/scenes/<id>.js"]`, so the kit (`MK`) is
   always there.
 - Copy `voice` from meiosis and change `lines`, `starts` and `show`. Keep the model, the voice (Aoede), the language and
   the style prompt unless the person asks otherwise; adjust the audience in the style prompt if it changes.
@@ -122,7 +122,7 @@ piano, marimba, harp and flute).
 ## House rules
 
 - **The TTS key** is in `tts_api_key.txt`. Never print, paste or commit it.
-- **Don't change shared files for one film** (`src/core.js`, `src/timeline.js`, `src/pip.js`, `src/scenes/mrna_kit.js`).
+- **Don't change shared files for one film** (`src/core.js`, `src/timeline.js`, `src/pip.js`, `src/pip_toon.js`, `src/scenes/mrna_kit.js`).
   To vary a helper, copy it into your scene and change it there. If a shared fix is truly needed, say so to the person
   first: every film depends on those files.
 - **Nothing you need lives only in `out/`.** It's gitignored and disposable. Reference images belong in `docs/`.

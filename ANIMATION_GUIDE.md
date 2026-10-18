@@ -8,7 +8,7 @@ The person prompting you decides **what** the video is about. This guide decides
 
 **No design here is final.** Pip, the emotions, the props and the helpers are a starting point, not a limit. Change any of them, Pip's own design included, and add whatever new characters, props or emotions the idea needs. Paint new things with the same tools and rules, so they belong with the rest.
 
-Look at the model sheet first: [docs/pip_reactions.png](docs/pip_reactions.png) shows Pip's 20 moods. [pip_readme.md](pip_readme.md) has all of Pip's options.
+Look at the model sheet first: [docs/pip_reactions.png](docs/pip_reactions.png) shows Pip's 20 moods, [docs/pip_toon_moods.png](docs/pip_toon_moods.png) the 17 slapstick ones and [docs/pip_toon_gags.png](docs/pip_toon_gags.png) the slapstick gags (watch them move at `pip.html?loop=pipReel`). [pip_readme.md](pip_readme.md) has all of Pip's options.
 
 Read [docs/STYLE.md](docs/STYLE.md) too: the series' look, colour codes, how molecules and cells are drawn, and how mechanisms are staged. Take the style from that sheet, **not from old scene code**: past scenes are long and specific to their stories. Open a scene file (`src/scenes/mrna_kit.js`, `pcr.js`, …) only when you badly need one technique the sheet doesn't cover, and read just that function.
 
@@ -30,7 +30,7 @@ Underneath all three, the viewer has to be able to follow it. Timing (rule 4) is
 
 - **Paint everything with p5.brush through `paint()` and `inkLine()`.** Characters get flat `wash` colour plus an ink outline. Backgrounds get soft watercolour `fill` shapes, usually with no outline or a thin one. Never use plain p5 shapes (`rect`, `ellipse`, `fill()`): they look like 2000s Flash.
 - **The linework boils.** `jit()` and `random()` are reseeded 12 times a second (`BOIL`), so every drawing wobbles slightly, like hand-drawn animation. That's the look; don't fight it. For anything that must stay put from frame to frame (star positions, tuft heights), use `hash(i)`. Give each separate element its own seed with `boilSeed(key)` (see Engine), or one moving thing makes everything drawn after it jitter.
-- **Everything is flat 2D. Never project 3D.** Don't rotate a box in perspective, don't use `rotateY` or WEBGL 3D and don't fake depth with math. Pip faces left or right with `flip`, and `turn` slides its face toward its heading: flip on a blink or a cut. Anything else that turns gets drawn key views, like a cartoon model sheet. Depth comes from overlap, scale and colour (farther = smaller, bluer, paler), never from a projection.
+- **Everything is flat 2D. Never project 3D.** (One exception, asked for by the person: Pip's `yaw`, a real turn about its upright axis for spins, `TOON.spinY`.) Don't rotate a box in perspective, don't use `rotateY` or WEBGL 3D and don't fake depth with math. Pip faces left or right with `flip`, and `turn` slides its face toward its heading: flip on a blink or a cut. Anything else that turns gets drawn key views, like a cartoon model sheet. Depth comes from overlap, scale and colour (farther = smaller, bluer, paler), never from a projection.
 - **Light is the one exception.** p5.brush mixes colour like pigment, so a yellow glow painted over blue turns green, and a thin wash over it turns grey. Use `glow()` for anything that shines: it adds real light, under the paper grain.
 - **Soft palette, no pure black or white.** Use `PAL.ink` for black and `PAL.cream` or `PAL.paper` for white. Keep colours soft and harmonious, and keep Pip clearly readable against the background.
 
@@ -253,6 +253,7 @@ One film = one manifest, `videos/<id>.json` ([videos/mrna.json](videos/mrna.json
 | `src/config_<id>.js` | generated from the manifest: `PROJECT = { duration, bpm, offset, audio }` |
 | `src/core.js` | canvas, palette, timing and motion helpers, `paint()`, camera, full-frame effects, `glow()`, lettering, paper, render hooks |
 | `src/pip.js` | Pip: `pip()`, `pipFeel()` and its moods, faces, arms, leaf, emotes (all options in [pip_readme.md](pip_readme.md)) |
+| `src/pip_toon.js` | `TOON`: Pip's slapstick kit, Tom-and-Jerry gags as pure functions of time, their effects and colour tints (see [pip_readme.md](pip_readme.md)). Add it to `cast` after `src/pip.js` |
 | `src/pip_sheets.js` | Pip's reaction sheet (`pip.html?loop=pip`), the channel avatar, `pipHelix()` |
 | `src/scenes/mrna_kit.js` | `MK`: the biology props, plus `act()`, `swim()` and `hand()` for Pip (index at the end of docs/STYLE.md) |
 | `src/timeline.js` | `shots()`, `LOOPS`, `brushWipe()` |
@@ -368,6 +369,7 @@ pip(x, y, u, options)   // (x, y) = ground point between the feet; u = size unit
 | positive | calm, happy, laugh, excited, wave, love, wink, smug, shy, sing |
 | thinking | idea, wow, confused |
 | negative | worried, sad, cry, angry, strain, sleepy, dizzy |
+| slapstick | shock, scream, ouch, ko, deadpan, blank, gulp, eek, scheme, blech, puff, bliss, panic, furious, guffaw, munch, mortified (`PIP_TOON_FEELS`) |
 
 ```js
 pip(x, y, 32, { ...pipFeel('happy', t), key: 'p' });                                   // one mood, alive
@@ -378,7 +380,7 @@ pip(x, y, 32, { ...K.act(t, [[0, 'calm'], [L(2, .6), 'wow'], [L(2, 2), 'idea']])
 - **`MK.act(t, keys, seed)`** is how moods change in a shot. Each change cuts on a blink, fires a take (a squash, then a stretch that springs back) and pops the new emote in. A key's third element overrides fields for that stretch, e.g. `{ lookX: .8, take: .8 }` (`take` scales the reaction).
 - **`MK.swim(x, y, u, t, options, key)`** is Pip as the host in the science films: a bob, paddling feet and a slight tilt. With `talk: true` the body pulses with the narration (`voAt(t)`). It returns the bobbed y.
 - `worried` covers more than worry: its sweat drop and wobbly mouth also work for embarrassed, "oops" and awkward moments. Add `blush: 1` to lean it toward embarrassed.
-- To make a new mood, add a `case` to `pipFeel()` in src/pip.js: a `face`, plus blinks, body motion, arms, leaf and emote, all as functions of `t`.
+- To make a new mood, add a `case` to `pipFeel()` in src/pip.js: a `face`, plus blinks, body motion, arms, leaf and emote, all as functions of `t` (slapstick ones also go in `PIP_TOON_FEELS`). Add new cases and faces only: old films render through the same code, so check a frame of an old film still renders byte-identical.
 
 ### Options
 
@@ -386,7 +388,7 @@ pip(x, y, 32, { ...K.act(t, [[0, 'calm'], [L(2, .6), 'wow'], [L(2, 2), 'idea']])
 |---|---|
 | pose | `dy` (in u; − = up), `sq` (squash; negative stretches), `rot` (lean in radians; keep it under about .15), `flip` (face left), `walk`, `kick` (foot cycle phases), `noShadow` |
 | face | `face`: calm, happy, idea, strain, wow, star, laugh, love, wink, smug, shy, sad, worried, angry, sleepy, dizzy. `blink` 0..1, `lookX`/`lookY` −1..1, `blush` 0..1, `tear` 0..1 |
-| turning | `turn` 0..1: how far the face slides toward its heading (default .4). Pip has no back or profile views: it faces left or right with `flip`, and `turn` shows where it's heading |
+| turning | `turn` 0..1: how far the face slides toward its heading (default .4). Pip faces left or right with `flip`, and `turn` shows where it's heading. `yaw` (radians) is a real 3D turn about the upright axis, back included: for spins (`TOON.spinY`) and a quick look round, not for walking |
 | arms | `armF` (front), `armB` (back): `[angle, len]` (radians, + is up; len in u, at most 3.6) for reaching and waving, `{at: [x, y]}` (u units, local and unflipped) for touching its own body, `{to: [x, y]}` (local px). `armsFront: true` draws them over the body (hugging, hands on belly or chin) |
 | leaf | `leaf`: angle offset; + tips forward, − tips back. Droop it to about ±1.2 for sadness |
 | emote | `emote` + `emoteK` (0..1 pop-in): sweat, anger, heart, zzz, sparkle, question, exclaim, note |
@@ -399,13 +401,28 @@ Options compose by spreading: `pip(x, y, u, { ...K.act(t, keys), armF: { at: [1,
 - **Hold a prop with an `{at}` arm,** and draw the prop at the hand: `MK.hand(x, y, u, at, { flip, dy })` returns the hand's world point. Draw it after Pip so it sits in front.
 - `pipEmote(kind, x, y, u, dir, key)` draws an emote on its own, anywhere (over a prop, over a cell).
 - Anything big that Pip carries or pushes is drawn separately at a point computed from the same pose. Make sure it touches: check it with a crop.
-- Emotes and `{at}` arms ignore `rot`.
+- Plain `pip()` leaves emotes upright over the standing head whatever `rot` is; `TOON.pip()` turns them with the body.
 
 ### Walking and dancing
 
 - **Walks:** move `x` with `stroll()` or an eased `kf()`, drive `walk` from the distance covered, and set `flip` to the direction of travel.
 - **Hops:** `jump(t, t0, t1, h)` returns `{dy, sq}` (h in u; about 1–1.5 suits Pip); add them to the mood's `dy` and `sq`.
 - **Dancing:** lock `dy`, `sq`, `rot`, the arms and the leaf to the beat with `pulse()` and `bpOf()`. `pipFeel('excited')` and `pipFeel('sing')` are good starting points.
+
+### Slapstick
+
+Tom-and-Jerry gags live in `src/pip_toon.js` (`TOON`; every gag and option is in [pip_readme.md](pip_readme.md)). Each gag is a pose delta over time, laid over the mood with `TOON.mix()` and drawn with `TOON.pip()`:
+
+```js
+let o = MK.act(t, [[0, 'smug'], [L(8, 15.6), 'dizzy']]);
+o = TOON.mix(o, TOON.bonk(t, L(8, 15.5)));                 // the toy swings back: pow, a lump, KO, stars
+TOON.pip(x, y, 30, { ...o, key: 'p' });
+```
+
+- **Use a gag rather than hand-rolling one** with `on()`/`seg()` overrides: each one already has the anticipation, the exaggerated key pose, the hold, the settle and a blink to hide the cut back to the mood.
+- **Animate the dials, not the face.** A take is `eyeS`, `jaw`, `pupil` and `browY` running through a curve, so the face grows into the take instead of swapping to it.
+- **Cause first, then the gag**, and hold the aftermath (the `deadpan` look at camera, the soot, the stars) long enough to land. Each gag needs a cartoon sound in the score.
+- **Gags tumble.** `TOON.pivot()` turns Pip about its middle, so spins, slips and knockbacks can turn it right over (a flat 2D rotation), and `TOON.pip` keeps the emote on its head. `TOON.spinY` spins it round its upright axis in 3D (`yaw`).
 
 ---
 
