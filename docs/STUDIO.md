@@ -27,7 +27,7 @@ language), do what they ask.
 2. [docs/STYLE.md](STYLE.md): the series' look, colour, molecules, cells, staging, sound and the numbers that worked.
    Required, every time.
 3. [ANIMATION_GUIDE.md](../ANIMATION_GUIDE.md): the rules, timing, the review loop, the pipeline, the engine and Pip.
-4. One finished film, for **format, not content**: [videos/meiosis.json](../videos/meiosis.json) and
+4. One or two finished film(s), for **format & styles, not content**: eg [videos/meiosis.json](../videos/meiosis.json) and
    [storyboards/meiosis.md](../storyboards/meiosis.md), plus the header comment of [audio/music_meiosis.mjs](../audio/music_meiosis.mjs).
    Don't read old scene files start to finish (STYLE.md says why); open one only for a technique you need.
 
@@ -50,8 +50,7 @@ nothing for a film lives at the root (the full map is in [README.md](../README.m
 
 In the manifest:
 - `title` is `Pip讲<中文主题>`. It names the MP4, the captions and the cover.
-- `cast` is `["src/pip.js", "src/pip_toon.js"]` (Pip and its slapstick kit, `TOON`). `scenes` is `["src/scenes/mrna_kit.js", "src/scenes/<id>.js"]`, so the kit (`MK`) is
-  always there.
+- `cast` is `["src/pip.js", "src/pip_toon.js"]` (Pip and its slapstick kit, `TOON`). `scenes` is `["src/scenes/mrna_kit.js", "src/scenes/<id>.js"]`, so the kit (`MK`) is always there.
 - Copy `voice` from [videos/amnesia.json](../videos/amnesia.json) and change `lines`, `starts` and `show`. It uses the house
   voice, `"model": "gemini-3.8-flash-tts"` and `"voice": "Tavi"` (also make.mjs's default), and gives its direction as
   **`notes`**, not `style`: `notes` are director's notes (who is speaking, to whom, the mood, the pace), which make.mjs

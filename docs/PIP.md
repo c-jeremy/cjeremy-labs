@@ -38,11 +38,13 @@ pip(1100, 900, 30, { ...pipFeel('sad', t, { seed: 2 }), key: 'pipB' });   // see
 | Thinking | `idea` `wow` `confused` |
 | Negative | `worried` `sad` `cry` `angry` `strain` `sleepy` `dizzy` |
 
-`worried` covers more than worry. Its sweat drop and wobbly mouth also work when Pip is embarrassed, has just done something wrong, or is in an awkward or funny moment ("oops", "heh…"). Add `blush: 1` to lean it toward embarrassed.
+`worried` covers more than worry. Its sweat drop and wobbly mouth also work when Pip is embarrassed, or is in an awkward or funny moment ("oops", "heh…"). Add `blush: 1` to lean it toward embarrassed.
 
-To see them all moving, open `pages/pip.html?loop=pip`, or look at `docs/img/pip_reactions.png`.
+To see them all moving, look at `docs/img/pip_reactions.png`.
 
-**Slapstick moods** (`PIP_TOON_FEELS`, Tom-and-Jerry size; `pages/pip.html?loop=pipToon`, `docs/img/pip_toon_moods.png`):
+Slapstick moods - (`PIP_TOON_FEELS`, Tom-and-Jerry size; `pages/pip.html?loop=pipToon`, `docs/img/pip_toon_moods.png`):
+
+**IMPORTANT** - *Do not over-use slapstick moods, as they are mostly really dramatic, and audience would be attracted by Pip if you use them; only use them if you are intending so*.
 
 | Mood | Use it for |
 | --- | --- |
