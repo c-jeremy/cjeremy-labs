@@ -100,6 +100,7 @@ cam(c[0] + 6 * wob(t, .06), c[1] + 5 * wob(t, .05), c[2]);                      
 | danger, a problem | `worried`, `angry` (shooing), `dizzy` (a bonk) |
 | delight | `laugh`, `excited`, `sing`, `love` |
 | loss, ending | `sad`, `cry`, then a `wave` |
+| a gag lands (slapstick) | a `TOON` gag (`wildTake`, `bonk`, `flatten`, `blast`, `zip`…), then the aftermath mood: `ko`, `deadpan`, `blank`, `mortified`; `eek`/`gulp` just before it hits |
 
 ```js
 let o = K.act(t, [[25.0, 'smug'], [26.4, 'strain'], [28.0, 'happy'], [29.6, 'laugh', { lookX: -.5, lookY: .7 }]]);
