@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# pre-commit: reject MP4 files and any file over 10 MB. Renders belong in out/ (gitignored), not in git.
+# Enabled by `git config core.hooksPath .githooks` (npm install does it). Bypass once with `git commit --no-verify`.
+
+LIMIT=10485760   # 10 MB, in bytes
+bad=0
+
+# staged files that will be in the commit (added, copied, modified, renamed); NUL-separated so any name is safe
+git diff --cached --name-only --diff-filter=ACMR -z | {
+  while IFS= read -r -d '' f; do
+    case "$(printf '%s' "$f" | tr '[:upper:]' '[:lower:]')" in
+      *.mp4) echo "pre-commit: $f is an MP4; keep renders in out/" >&2; bad=1; continue ;;
+    esac
+    size=$(git cat-file -s ":$f" 2>/dev/null) || continue   # the staged blob's size, not the working copy's
+    if [ "$size" -gt "$LIMIT" ]; then
+      echo "pre-commit: $f is $(( size / 1048576 )) MB (limit 10 MB)" >&2; bad=1
+    fi
+  done
+  exit $bad
+}
+status=$?
+
+if [ $status -ne 0 ]; then
+  echo "pre-commit: commit rejected. Unstage with: git restore --staged <file>" >&2
+fi
+exit $status

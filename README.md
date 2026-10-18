@@ -4,6 +4,8 @@ Hand-painted, narrated science films hosted by Pip, built with p5.brush. Start w
 
 Run every command from the repo root (all paths are relative to it).
 
+A pre-commit hook (`.githooks/pre-commit`) rejects MP4s and any file over 10 MB: renders stay in `out/`. `npm install` turns it on; in a fresh clone without it, run `git config core.hooksPath .githooks`.
+
 | folder | what's in it |
 |---|---|
 | `videos/` | one manifest per film, `<id>.json`: the source of truth for a film |

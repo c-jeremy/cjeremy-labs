@@ -5,6 +5,7 @@
   "license": "MIT",
   "description": "Clawd, painted in p5.brush: a character kit and guide for making hand-painted Clawd animations",
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "sheet": "node tools/render.mjs --sheet=0,1,2,3,4,5 --out=out/sheet.jpg",
     "video": "node tools/render.mjs --clip --out=out/video.mp4"
   },
