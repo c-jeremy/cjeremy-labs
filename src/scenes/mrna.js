@@ -1,6 +1,6 @@
 // mrna.js: "Pip讲mRNA疫苗", 200.5 s. Pip follows one vaccine mRNA from its design (cap, poly(A), 2P, m1Ψ) through the
 // LNP, endosomal escape, translation and trafficking, to its degradation and the immune memory it leaves.
-// The cast lives in mrna_kit.js (MK). Timings follow the narration (vo_mrna.mjs → VO_ENV). See STORYBOARD_MRNA.md.
+// The cast lives in mrna_kit.js (MK). Timings follow the narration (audio/vo_mrna.mjs → VO_ENV). See storyboards/mrna.md.
 (() => {
   const K = MK, C = MK.C;
   const cam = (cx, cy, z) => camBegin(cx, cy, z);

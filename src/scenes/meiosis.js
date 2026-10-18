@@ -1,7 +1,7 @@
 // meiosis.js: "Pip讲减数分裂", 290 s. Why a second child of the same parents is almost never you: halving (2n → n),
 // then one primary spermatocyte through meiosis I and II (replication, condensation, synapsis/tetrads, crossing over,
 // metaphase I orientation, anaphase/telophase I, metaphase/anaphase/telophase II), a recap, the 2^23 × 2^23 count,
-// nondisjunction (trisomy 21), and back to the family. See STORYBOARD_MEIOSIS.md. Props from mrna_kit.js (MK).
+// nondisjunction (trisomy 21), and back to the family. See storyboards/meiosis.md. Props from mrna_kit.js (MK).
 // Every time is tied to a voice line: L(i, d) = line i's start + d seconds, so a retimed line moves its pictures.
 (() => {
   const K = MK;
@@ -672,7 +672,7 @@
     if (close > 0) iris(at[0], at[1], kf(close, [[0, 1800], [.6, 240], [.8, 220], [1, 0]], easeIn));
   }
 
-  // ================================ the cover (a still: node render.mjs --page=meiosis.html --loop=cover --stills=.5) ================================
+  // ================================ the cover (a still: node tools/render.mjs --page=pages/meiosis.html --loop=cover --stills=.5) ================================
   LOOPS.cover = t => {
     K.wash(Z.home, t, { key: 'cv', blob: Z.homeBlob, rect: rectPts(-200, -200, W + 400, H + 400) });
     boilSeed('cvfloor'); paint(rectPts(-200, 905, W + 400, 400), { wash: Z.floor, ink: null });

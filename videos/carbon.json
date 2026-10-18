@@ -11,7 +11,7 @@
     "src/scenes/mrna_kit.js",
     "src/scenes/carbon.js"
   ],
-  "music": "music_carbon.mjs",
+  "music": "audio/music_carbon.mjs",
   "voice": {
     "model": "gemini-3.1-flash-tts-preview",
     "voice": "Aoede",

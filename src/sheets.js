@@ -1,6 +1,6 @@
 // sheets.js: Clawd's model sheets, as standalone loops. They're reference for you (and the model), not part of a video,
-// so they're the one place labels are fine. Scrub them at studio.html?loop=views or ?loop=emotions, or render:
-//   node render.mjs --loop=emotions --sheet=1 --cols=1 --w=1920 --out=docs/emotions.jpg
+// so they're the one place labels are fine. Scrub them at pages/studio.html?loop=views or ?loop=emotions, or render:
+//   node tools/render.mjs --loop=emotions --sheet=1 --cols=1 --w=1920 --out=docs/img/emotions.jpg
 (() => {
   const label = (txt, x, y, size = 20) => letter(txt, x, y, size, PAL.ink, { ink: false, alpha: .8 });
   const floor = (y, x0 = 0, x1 = W) => inkLine([[x0 + 40, y + 6], [W / 2, y + 4], [x1 - 40, y + 7]], .6, mixCol(PAL.paper, PAL.ink, .35), 'inkfine', .5);

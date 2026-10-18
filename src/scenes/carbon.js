@@ -1,7 +1,7 @@
 // carbon.js: "Pip讲植物吸收二氧化碳", 320 s. How a leaf takes in CO₂ and what it pays in water: the stoma, the way to the
 // stroma, Calvin's lollipop, Rubisco and the Calvin cycle (C3), Rubisco's flaws (slow, grabs O₂: photorespiration), the C4
 // pump split in space (the Kranz wreath, PEP carboxylase), CAM split in time (night acid, day sugar), recaps, the world's
-// share and C4 rice, and back to the meadow. See STORYBOARD_CARBON.md. Props from mrna_kit.js (MK).
+// share and C4 rice, and back to the meadow. See storyboards/carbon.md. Props from mrna_kit.js (MK).
 // Every time is tied to a voice line: L(i, d) = line i's start + d seconds, so a retimed line moves its pictures.
 // Cost note: on a software GPU every watercolour `fill` costs ~0.3 s a frame, while a flat `wash` shape costs ~2 ms, so
 // grounds here are washes with translucent wash blobs, and fills are kept for Pip.

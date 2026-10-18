@@ -11,7 +11,7 @@
     "src/scenes/mrna_kit.js",
     "src/scenes/xenocortex.js"
   ],
-  "music": "music_xenocortex.mjs",
+  "music": "audio/music_xenocortex.mjs",
   "voice": {
     "model": "gemini-3.1-flash-tts-preview",
     "voice": "Aoede",

@@ -11,7 +11,7 @@
     "src/scenes/mrna_kit.js",
     "src/scenes/amnesia.js"
   ],
-  "music": "music_amnesia.mjs",
+  "music": "audio/music_amnesia.mjs",
   "voice": {
     "model": "gemini-3.8-flash-tts",
     "voice": "Tavi",

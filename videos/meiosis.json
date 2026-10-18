@@ -11,7 +11,7 @@
     "src/scenes/mrna_kit.js",
     "src/scenes/meiosis.js"
   ],
-  "music": "music_meiosis.mjs",
+  "music": "audio/music_meiosis.mjs",
   "voice": {
     "model": "gemini-3.1-flash-tts-preview",
     "voice": "Aoede",

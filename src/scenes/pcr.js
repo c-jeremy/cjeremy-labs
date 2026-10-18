@@ -2,7 +2,7 @@
 // exam traps: the target-length product first appears in cycle 3 (2ⁿ − 2n after n cycles), primers with a 5′ tail
 // still need 3 cycles for a full double-stranded product, tails only go on the 5′ end, and n cycles use 2ⁿ⁺¹ − 2 primers.
 // Every strand on the board comes out of one copy rule (build()), so the products are computed, not placed by hand.
-// Timings follow the narration (vo_pcr.mjs → VO_ENV). See STORYBOARD_PCR.md.
+// Timings follow the narration (audio/vo_pcr.mjs → VO_ENV). See storyboards/pcr.md.
 (() => {
   // ---------- palette ----------
   const PC = {

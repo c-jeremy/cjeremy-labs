@@ -11,7 +11,7 @@
     "src/scenes/mrna_kit.js",
     "src/scenes/tca.js"
   ],
-  "music": "music_tca.mjs",
+  "music": "audio/music_tca.mjs",
   "voice": {
     "model": "gemini-3.1-flash-tts-preview",
     "voice": "Aoede",

@@ -2,7 +2,7 @@
 // a pond alga's light-gated channel, channelrhodopsin, becomes a light switch for neurons. Pip starts lost in the brain's
 // tangle, meets the alga (Chlamy), who rides along from then on: our eye's slow cascade vs the alga's one-step channel, the
 // frog egg and the retinal's isomerisation, rest/threshold/action potential, the neuron in a dish, virus + promoter (the
-// "genetic" part), the mouse, the chloride-pump off switch, the clinic, and back to the tangle with Chlamy as its lamp. Props from mrna_kit.js (MK). See STORYBOARD_OPTO.md.
+// "genetic" part), the mouse, the chloride-pump off switch, the clinic, and back to the tangle with Chlamy as its lamp. Props from mrna_kit.js (MK). See storyboards/opto.md.
 (() => {
   const K = MK, C = MK.C;
   const O = {

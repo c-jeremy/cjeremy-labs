@@ -1,6 +1,6 @@
 // pip_sheets.js: Pip's model sheet and the channel avatar, as standalone loops (labels are fine here, as in sheets.js).
-//   node render.mjs --page=pip.html --loop=pip --sheet=1 --cols=1 --w=1920 --out=docs/pip_reactions.jpg
-//   node render.mjs --page=pip.html --loop=pipAvatar --sheet=0 --cols=1 --crop=420,0,1080,1080 --w=1080 --out=docs/pip_avatar.jpg
+//   node tools/render.mjs --page=pages/pip.html --loop=pip --sheet=1 --cols=1 --w=1920 --out=docs/img/pip_reactions.jpg
+//   node tools/render.mjs --page=pages/pip.html --loop=pipAvatar --sheet=0 --cols=1 --crop=420,0,1080,1080 --w=1080 --out=docs/img/pip_avatar.jpg
 (() => {
   const label = (txt, x, y, size = 20) => letter(txt, x, y, size, PAL.ink, { ink: false, alpha: .8 });
 
@@ -16,7 +16,7 @@
   LOOPS.pip.len = 4;
 
   // The slapstick moods (PIP_TOON_FEELS), alive.
-  //   node render.mjs --page=pip.html --loop=pipToon --sheet=1.1 --cols=1 --w=1920 --out=docs/pip_toon_moods.jpg
+  //   node tools/render.mjs --page=pages/pip.html --loop=pipToon --sheet=1.1 --cols=1 --w=1920 --out=docs/img/pip_toon_moods.jpg
   LOOPS.pipToon = t => {
     const cols = 6, rows = Math.ceil(PIP_TOON_FEELS.length / cols), cw = W / cols, ch = H / rows;
     PIP_TOON_FEELS.forEach((name, i) => {
@@ -28,7 +28,7 @@
   LOOPS.pipToon.len = 4;
 
   // The slapstick faces (PIP_FACES) up close, plus the parts on their own: popped eyes, a dropped jaw, cheeks.
-  //   node render.mjs --page=pip.html --loop=pipFaces --sheet=.5 --cols=1 --w=1920 --out=docs/pip_toon_faces.jpg
+  //   node tools/render.mjs --page=pages/pip.html --loop=pipFaces --sheet=.5 --cols=1 --w=1920 --out=docs/img/pip_toon_faces.jpg
   LOOPS.pipFaces = t => {
     const F = Object.keys(PIP_FACES), extra = [['eyeS 1.8', { face: 'wow', eyeS: 1.8, pupil: .4 }], ['jaw 2.2', { face: 'shock', jaw: 2.2, eyeS: 1.6 }],
       ['teeth + jaw .6', { face: 'eek', jaw: .6 }], ['pupil 1.7', { face: 'calm', pupil: 1.7, tear: .6, brow: [.3, -.04] }], ['eyes [dot, wow]', { face: 'calm', eyes: ['dot', 'wow'], mouth: 'smug' }]];
@@ -89,8 +89,8 @@
   LOOPS.pipAvatar.len = 2;
 
   // The slapstick reel: every TOON gag in turn, each with a simple cause, on a plain stage.
-  //   node render.mjs --page=pip.html --loop=pipReel --strip=<a>:<b> --out=…        (REEL_AT[name] = a segment's start)
-  //   node render.mjs --page=pip.html --loop=pipReel --frames --workers=1 --frames-dir=out/pip_reel/frames   → --encode
+  //   node tools/render.mjs --page=pages/pip.html --loop=pipReel --strip=<a>:<b> --out=…        (REEL_AT[name] = a segment's start)
+  //   node tools/render.mjs --page=pages/pip.html --loop=pipReel --frames --workers=1 --frames-dir=out/pip_reel/frames   → --encode
   if (typeof TOON !== 'undefined') {
     const FL = 880, U = 56, X = 960, S = TOON;
     const stage = (key, edge = null) => {                          // a warm wall and a floor (edge: the floor stops there, a cliff)
@@ -180,7 +180,7 @@
       }]
     ];
     // Every gag frozen at its peak, on one page (the reel shows them moving).
-    //   node render.mjs --page=pip.html --loop=pipGags --sheet=.5 --cols=1 --w=1920 --out=docs/pip_toon_gags.jpg
+    //   node tools/render.mjs --page=pages/pip.html --loop=pipGags --sheet=.5 --cols=1 --w=1920 --out=docs/img/pip_toon_gags.jpg
     const PEAKS = [['headShake', .2, t => S.headShake(t, 0)], ['zip (rev)', -.25, t => S.zip(t, 0)], ['zip (gone)', .4, t => S.zip(t, 0, { dist: 5 })],
       ['skid', .18, t => S.skid(t, 0, { dir: -1 })], ['shiver', .5, t => S.shiver(t, 0, 2)], ['gulp', .5, t => S.gulp(t, 0)], ['yaw 1.1 (¾)', 0, () => ({ yaw: 1.1, armF: [.3, 2.2], armB: [.3, 2.2] })],
       ['wildTake', .25, t => S.wildTake(t, 0, { amt: .8 })], ['doubleTake', 1.5, t => S.doubleTake(t, 0, { amt: .8 })], ['flatten', .5, t => S.flatten(t, 0)],

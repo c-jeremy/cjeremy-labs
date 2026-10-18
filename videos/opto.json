@@ -11,7 +11,7 @@
     "src/scenes/mrna_kit.js",
     "src/scenes/opto.js"
   ],
-  "music": "music_opto.mjs",
+  "music": "audio/music_opto.mjs",
   "voice": {
     "model": "gemini-3.1-flash-tts-preview",
     "voice": "Aoede",

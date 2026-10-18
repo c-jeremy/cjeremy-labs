@@ -2,5 +2,5 @@
   "id": "pipreel",
   "title": "Pip slapstick reel",
   "duration": 72.6,
-  "note": "Not a film: the TOON gag reel (LOOPS.pipReel), so phone_render.mjs can render it. Page: pipreel.html."
+  "note": "Not a film: the TOON gag reel (LOOPS.pipReel), so phone_render.mjs can render it. Page: pages/pipreel.html."
 }

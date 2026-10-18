@@ -2,7 +2,7 @@
 // channels (and the chili and mint that fool them), the hypothalamus thermostat, the cold responses (vasoconstriction,
 // goosebumps, shivering, thyroid hormone and adrenaline, brown fat's UCP1 proton leak), the heat responses
 // (vasodilation, sweating and evaporation, why humid heat is worse) and the negative-feedback loop. Tom-and-Jerry tone:
-// every fact lands on Pip as an exaggerated transformation. See STORYBOARD_THERMO.md. Props from mrna_kit.js (MK).
+// every fact lands on Pip as an exaggerated transformation. See storyboards/thermo.md. Props from mrna_kit.js (MK).
 // Every time is tied to a voice line: L(i, d) = line i's start + d seconds, so a retimed line moves its pictures.
 (() => {
   const K = MK;

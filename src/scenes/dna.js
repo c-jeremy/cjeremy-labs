@@ -1,7 +1,7 @@
 // dna.js: "Clawd讲转录和翻译", 88 s. Clawd dives through a microscope into a cell and follows one gene: transcription in
 // the nucleus (polymerase, unzipping, mRNA, T→U), processing (cap, tail, splicing), export through a nuclear pore, then
 // translation in the cytoplasm (ribosome, AUG, codons, tRNAs, peptide bonds, stop) and folding into a working protein.
-// Timings follow the narration (vo_dna.mjs → VO_ENV). See STORYBOARD_DNA.md.
+// Timings follow the narration (audio/vo_dna.mjs → VO_ENV). See storyboards/dna.md.
 (() => {
   // ---------- palette ----------
   const BC = { A: '#F08A4B', T: '#3AA5A0', G: '#7DB35A', C: '#8E6BC4', U: '#E86E8E' };

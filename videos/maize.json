@@ -11,7 +11,7 @@
     "src/scenes/mrna_kit.js",
     "src/scenes/maize.js"
   ],
-  "music": "music_maize.mjs",
+  "music": "audio/music_maize.mjs",
   "voice": {
     "model": "gemini-3.1-flash-tts-preview",
     "voice": "Aoede",

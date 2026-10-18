@@ -1,7 +1,7 @@
 // amnesia.js: "Pip讲消失的三年", 384 s. Pip's string of memory pearls starts with three blank ones: were those years never
 // written, or written and locked away? The old answer (an unripe hippocampus), the 2025 infant fMRI study, the mouse
 // engram experiments (light brings a "forgotten" memory back), two guesses for why we can't get in (a brain under
-// construction, a key that no longer fits), false first memories, and the locked door. See STORYBOARD_AMNESIA.md.
+// construction, a key that no longer fits), false first memories, and the locked door. See storyboards/amnesia.md.
 // Every time is tied to a voice line: L(i, d) = line i's start + d seconds.
 (() => {
   const K = MK;

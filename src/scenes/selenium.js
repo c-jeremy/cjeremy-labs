@@ -3,7 +3,7 @@
 // 21st amino acid) put in at a UGA stop codon, the Se-can-come-back trick (GPx and glutathione, sulfur that burns,
 // GPx4 and ferroptosis, the Sec→Cys mice), the thyroid's deiodinases, TrxR, SELENOP and the selenoprotein hierarchy,
 // then the soil: Keshan disease and Beck's virus (too little), hooves, hair and garlic breath (too much), and food.
-// More slapstick than copper on purpose: every gag acts out a step of the chemistry. See STORYBOARD_SELENIUM.md.
+// More slapstick than copper on purpose: every gag acts out a step of the chemistry. See storyboards/selenium.md.
 // Props from mrna_kit.js (MK); helpers copied from copper.js, xenocortex.js and pip.js say where they came from.
 // Every time is tied to a voice line: L(i, d) = line i's start + d seconds.
 (() => {

@@ -1,16 +1,18 @@
 # Animating Pip
 
-**Read [STUDIO.md](STUDIO.md) first.** It says what this studio makes (narrated Mandarin science films hosted by Pip), which files a film needs and the order to make them in. This guide covers the craft.
+**Read [docs/STUDIO.md](docs/STUDIO.md) first.** It says what this studio makes (narrated Mandarin science films hosted by Pip), which files a film needs and the order to make them in. This guide covers the craft.
 
 This covers how to make a hand-painted cartoon starring Pip (see `src/pip.js`), or any character you design: the rules and animation principles that make it look good, the workflow that catches mistakes, and the full reference for the character and the engine.
+
+**Run every command from the repo root**: all paths in these docs, the manifests and the tools are relative to it. Each kind of file has its own folder (`videos/`, `storyboards/`, `src/scenes/`, `audio/`, `pages/`, `tools/`, `docs/`); [README.md](README.md) maps them. Put new files in the folder for their kind, never at the root.
 
 The person prompting you decides **what** the video is about. This guide decides **how** it's made. If they ask for something the rules below forbid (a caption, a 3D spin), do what they ask.
 
 **No design here is final.** Pip, the emotions, the props and the helpers are a starting point, not a limit. Change any of them, Pip's own design included, and add whatever new characters, props or emotions the idea needs. Paint new things with the same tools and rules, so they belong with the rest.
 
-Look at the model sheet first: [docs/pip_reactions.png](docs/pip_reactions.png) shows Pip's 20 moods, [docs/pip_toon_moods.png](docs/pip_toon_moods.png) the 17 slapstick ones and [docs/pip_toon_gags.png](docs/pip_toon_gags.png) the slapstick gags (watch them move at `pip.html?loop=pipReel`). [pip_readme.md](pip_readme.md) has all of Pip's options.
+Look at the model sheet first: [docs/img/pip_reactions.png](docs/img/pip_reactions.png) shows Pip's 20 moods, [docs/img/pip_toon_moods.png](docs/img/pip_toon_moods.png) the 17 slapstick ones and [docs/img/pip_toon_gags.png](docs/img/pip_toon_gags.png) the slapstick gags (watch them move at `pages/pip.html?loop=pipReel`). [docs/PIP.md](docs/PIP.md) has all of Pip's options.
 
-Read [docs/STYLE.md](docs/STYLE.md) too: the series' look, colour codes, how molecules and cells are drawn, and how mechanisms are staged. Take the style from that sheet, **not from old scene code**: past scenes are long and specific to their stories. Open a scene file (`src/scenes/mrna_kit.js`, `pcr.js`, …) only when you badly need one technique the sheet doesn't cover, and read just that function.
+Read [docs/STYLE.md](docs/STYLE.md) too: the series' look, colour codes, how molecules and cells are drawn, and how mechanisms are staged. Take the style from that sheet, **not from old scene code**: past scenes are long and specific to their stories. Open a scene file (`src/scenes/mrna_kit.js`, `src/scenes/pcr.js`, …) only when you badly need one technique the sheet doesn't cover, and read just that function.
 
 ---
 
@@ -117,7 +119,7 @@ These are the classic principles of character animation, as they apply here. Mos
 
 ### 1. Storyboard
 
-Write `STORYBOARD.md` before any scene code:
+Write `storyboards/<id>.md` before any scene code:
 
 ```
 Logline: one sentence. Pip wants ___, but ___, so ___.
@@ -145,9 +147,10 @@ Check the storyboard against the rules:
 
 ### 2. Build
 
-- Start a manifest `videos/<id>.json` and run `node make.mjs <id> page` (see **Pipeline and audit** below, and STUDIO.md): it writes the page and config, so you don't copy them.
+- Start a manifest `videos/<id>.json` and run `node tools/make.mjs <id> page` (see **Pipeline and audit** below, and docs/STUDIO.md): it writes `pages/<id>.html` and `src/config_<id>.js`, so you don't copy them.
 - Put your scene in `src/scenes/<id>.js`, wrapped in an IIFE, and end it with `shots([...])`. List it in the manifest's `scenes`, after `src/scenes/mrna_kit.js`.
-- If the film is narrated, record the voice **before** you time the storyboard, and time the reads to the measured lines and pauses (`make.mjs <id> tts`, then `pauses`).
+- Put the score in `audio/music_<id>.mjs` and set the manifest's `music` to that path (see **Music**).
+- If the film is narrated, record the voice **before** you time the storyboard, and time the reads to the measured lines and pauses (`tools/make.mjs <id> tts`, then `pauses`).
 - Build and check one shot at a time, in order.
 - Within a shot, block the key poses first and check them as stills (`--sheet` at the key times). Add the motion between them once they read.
 
@@ -175,21 +178,21 @@ Check the storyboard against the rules:
 
 ### 3. Look at it: the review loop
 
-**Audit first** (`node make.mjs <id> audit`): it lists, as text, where Pip is clipped by the frame edge, too small, or covered by a big prop, and where bare paper shows. Fix those, then spend your picture reviews on what only eyes can judge. It replaces geometry-hunting in sheets; it doesn't replace looking.
+**Audit first** (`node tools/make.mjs <id> audit`): it lists, as text, where Pip is clipped by the frame edge, too small, or covered by a big prop, and where bare paper shows. Fix those, then spend your picture reviews on what only eyes can judge. It replaces geometry-hunting in sheets; it doesn't replace looking.
 
 You can't see motion by reading code. Render and look at every shot, several times, at three zoom levels:
 
 ```bash
-# always pass your film's page: render.mjs opens studio.html, which has no film, without it
+# always pass your film's page: without --page, tools/render.mjs opens pages/studio.html, which has no film
 # contact sheet: the shape of the whole piece (every shot's first, middle and last frames)
-node render.mjs --page=<id>.html --sheet=0.1,0.8,1.6,2.4,3.1,3.9 --cols=6 --w=320 --out=out/<id>/check/sheet.jpg
+node tools/render.mjs --page=pages/<id>.html --sheet=0.1,0.8,1.6,2.4,3.1,3.9 --cols=6 --w=320 --out=out/<id>/check/sheet.jpg
 # strip: EVERY frame of a moment (turns, takes, jumps, throws, transitions)
-node render.mjs --page=<id>.html --strip=2.1:2.6 --cols=6 --w=320 --out=out/<id>/check/strip.jpg
+node tools/render.mjs --page=pages/<id>.html --strip=2.1:2.6 --cols=6 --w=320 --out=out/<id>/check/strip.jpg
 # crop: full-resolution detail (faces, hands, contacts, glows); crop=x,y,w,h in frame pixels
-node render.mjs --page=<id>.html --sheet=2.3,2.4 --crop=760,420,500,400 --w=500 --out=out/<id>/check/face.jpg
+node tools/render.mjs --page=pages/<id>.html --sheet=2.3,2.4 --crop=760,420,500,400 --w=500 --out=out/<id>/check/face.jpg
 # crop-at: the same, following a WORLD point through each frame's camera (a foot or a prop on a moving shot);
 # x,y in world pixels (or an expression evaluated in the page), w,h in frame pixels
-node render.mjs --page=<id>.html --strip=2.1:2.6 --crop-at=960,700,500,400 --out=out/<id>/check/feet.jpg
+node tools/render.mjs --page=pages/<id>.html --strip=2.1:2.6 --crop-at=960,700,500,400 --out=out/<id>/check/feet.jpg
 ```
 
 Open each image and actually look at it. Check:
@@ -212,30 +215,30 @@ Fix what you find, then look again. **Budget:** at least one sheet per shot, a s
 ### 4. Render
 
 ```bash
-node make.mjs <id> frames --workers=6                           # frames → out/<id>/frames (resumable) …
-node make.mjs <id> encode                                       # … then MP4 with assets/<id>_mix.wav → out/<id>/<title>.mp4
+node tools/make.mjs <id> frames --workers=6                           # frames → out/<id>/frames (resumable) …
+node tools/make.mjs <id> encode                                       # … then MP4 with assets/<id>_mix.wav → out/<id>/<title>.mp4
 ```
 
 A full film costs real time (the 200 s mRNA film: about 40 min on 6 workers), so render once, after the audit and the reviews.
 
 ### Pipeline and audit
 
-One film = one manifest, `videos/<id>.json` ([videos/mrna.json](videos/mrna.json) is a complete example). [make.mjs](make.mjs) generates everything else; run `node make.mjs` for the commands.
+One film = one manifest, `videos/<id>.json` ([videos/mrna.json](videos/mrna.json) is a complete example). [tools/make.mjs](tools/make.mjs) generates everything else; run `node tools/make.mjs` for the commands.
 
 | field | |
 |---|---|
 | `id`, `title`, `duration`, `bpm`, `offset` | the film; `title` names the MP4 |
-| `cast`, `scenes` | scripts loaded after the engine, in order (e.g. `src/pip.js`; your kit and scene files) |
-| `music` | the film's own music script; it reads `assets/<id>_vo.wav` and writes `assets/<id>_mix.wav` |
+| `cast`, `scenes` | scripts loaded after the engine, in order (e.g. `src/pip.js`; your kit and scene files). Write them from the repo root (`src/scenes/<id>.js`, not `../src/…`): `page` adds the `../` that `pages/<id>.html` needs |
+| `music` | the film's own music script, `audio/music_<id>.mjs`; it runs from the repo root, reads `assets/<id>_vo.wav` and writes `assets/<id>_mix.wav` |
 | `voice` | `model`, `voice`, `language`, `keyFile`, `notes` (director's notes for the TTS; older films use `style`, a direction prepended to every line), `lines`, `starts` (one per line, seconds) |
 | `audit.ignore` | `{check, key, from, to, why}`: runs the film means to have. `check` matches by prefix, `key` by substring |
 
-- **Generated, don't edit:** `<id>.html`, `src/config_<id>.js`, `src/scenes/<id>_vo_env.js` (gives scenes `voAt(t)`, the voice's loudness), `assets/<id>_vo.wav`. **Hand-written:** scenes and the music script. They are the film, so keep them bespoke.
-- **The voice is Gemini TTS on Vertex AI, and the key is already here:** `tts_api_key.txt` (an express-mode key, the default `voice.keyFile`). `make.mjs <id> tts` and `listen` use it, so don't look for another TTS service or key. The house voice is **Gemini 3.8 Flash TTS (`gemini-3.8-flash-tts`), voice Tavi, Mandarin**: it's the default in make.mjs, so a manifest only needs `model`/`voice` to override it. Copy the rest of `voice` (`notes`, keyFile) from videos/amnesia.json: on 3.8 the direction goes in `notes` (sent as director's notes), never in a `style` prefix, which 3.8 often reads aloud. The films up to maize pin the older Gemini 3.1 Flash TTS preview with Aoede in their manifests; leave those as they are so their lines can be regenerated to match. The older films used edge-tts; that is not the setup now. Never print, paste or commit the key (it's in .gitignore).
+- **Generated, don't edit:** `pages/<id>.html`, `src/config_<id>.js`, `src/scenes/<id>_vo_env.js` (gives scenes `voAt(t)`, the voice's loudness), `assets/<id>_vo.wav`. **Hand-written:** the manifest, `storyboards/<id>.md`, `src/scenes/<id>.js` and `audio/music_<id>.mjs`. The scenes and the score are the film, so keep them bespoke.
+- **The voice is Gemini TTS on Vertex AI, and the key is already here:** `tts_api_key.txt` (an express-mode key, the default `voice.keyFile`). `tools/make.mjs <id> tts` and `listen` use it, so don't look for another TTS service or key. The house voice is **Gemini 3.8 Flash TTS (`gemini-3.8-flash-tts`), voice Tavi, Mandarin**: it's the default in make.mjs, so a manifest only needs `model`/`voice` to override it. Copy the rest of `voice` (`notes`, keyFile) from videos/amnesia.json: on 3.8 the direction goes in `notes` (sent as director's notes), never in a `style` prefix, which 3.8 often reads aloud. The films up to maize pin the older Gemini 3.1 Flash TTS preview with Aoede in their manifests; leave those as they are so their lines can be regenerated to match. The older films used edge-tts; that is not the setup now. Never print, paste or commit the key (it's in .gitignore).
 - **Voice order:** `tts` → `listen` (optional) → `pauses` (each line's length and breaths, plus a back-to-back draft of `starts`) → set `starts` → `vo` → `music`. After regenerating a line, rerun `pauses` and `vo`, and move any scene times after it.
-- **Captions:** `make.mjs <id> srt` writes `out/<id>/<title>.srt` for upload (Bilibili: 字幕 → 上传字幕). It splits the lines at their punctuation and times the chunks to the voice's real pauses. `voice.show` maps spoken spellings back to written ones for the captions only (五撇端 → 5′端). Rerun it whenever lines or `starts` change.
+- **Captions:** `tools/make.mjs <id> srt` writes `out/<id>/<title>.srt` for upload (Bilibili: 字幕 → 上传字幕). It splits the lines at their punctuation and times the chunks to the voice's real pauses. `voice.show` maps spoken spellings back to written ones for the captions only (五撇端 → 5′端). Rerun it whenever lines or `starts` change.
 - **TTS notes** (Gemini on Vertex): write lines the way they should be *said* (五撇端, not 5′端; "TLR", because "Toll" gets misread). `listen` transcribes with another model and isn't deterministic: the same audio can come back differently, so treat it as a sanity check, not proof. Call the API from Node, not curl in zsh, because zsh eats `$model:generateContent`.
-- **Audit:** `make.mjs <id> audit [--step=.25] [--range=a:b]`. It samples the film and prints runs: `paper` (bare paper > 0.3% of the frame), `clip-<edge>` (a character partly off-frame; fully off is an entrance and is skipped), `small` (a character under 90 px tall), `overlap` (a character's box over 25% covered by a prop's).
+- **Audit:** `tools/make.mjs <id> audit [--step=.25] [--range=a:b]`. It samples the film and prints runs: `paper` (bare paper > 0.3% of the frame), `clip-<edge>` (a character partly off-frame; fully off is an entrance and is skipped), `small` (a character under 90 px tall), `overlap` (a character's box over 25% covered by a prop's).
   - `pip()` reports its box itself. Make a big prop checkable by calling `auditBox(kind, key, x0, y0, x1, y1)` (world coords) in its draw function.
   - Boxes follow the camera but not transforms your scene pushes itself.
   - When a hit is on purpose, add it to `audit.ignore` with a `why`.
@@ -252,14 +255,17 @@ One film = one manifest, `videos/<id>.json` ([videos/mrna.json](videos/mrna.json
 |---|---|
 | `src/config_<id>.js` | generated from the manifest: `PROJECT = { duration, bpm, offset, audio }` |
 | `src/core.js` | canvas, palette, timing and motion helpers, `paint()`, camera, full-frame effects, `glow()`, lettering, paper, render hooks |
-| `src/pip.js` | Pip: `pip()`, `pipFeel()` and its moods, faces, arms, leaf, emotes (all options in [pip_readme.md](pip_readme.md)) |
-| `src/pip_toon.js` | `TOON`: Pip's slapstick kit, Tom-and-Jerry gags as pure functions of time, their effects and colour tints (see [pip_readme.md](pip_readme.md)). Add it to `cast` after `src/pip.js` |
-| `src/pip_sheets.js` | Pip's reaction sheet (`pip.html?loop=pip`), the channel avatar, `pipHelix()` |
+| `src/pip.js` | Pip: `pip()`, `pipFeel()` and its moods, faces, arms, leaf, emotes (all options in [docs/PIP.md](docs/PIP.md)) |
+| `src/pip_toon.js` | `TOON`: Pip's slapstick kit, Tom-and-Jerry gags as pure functions of time, their effects and colour tints (see [docs/PIP.md](docs/PIP.md)). Add it to `cast` after `src/pip.js` |
+| `src/pip_sheets.js` | Pip's reaction sheet (`pages/pip.html?loop=pip`), the channel avatar, `pipHelix()` |
 | `src/scenes/mrna_kit.js` | `MK`: the biology props, plus `act()`, `swim()` and `hand()` for Pip (index at the end of docs/STYLE.md) |
 | `src/timeline.js` | `shots()`, `LOOPS`, `brushWipe()` |
-| `<id>.html` | generated; open it in Chrome to scrub the film (`?t=2.5` jumps to a time, `?loop=cover` shows a loop) |
-| `render.mjs` | headless renderer: sheets, strips, crops, stills, PNG loops, MP4, `--audit` |
-| `make.mjs`, `videos/<id>.json` | one manifest per film → page, config, TTS, voice layout, audit, frames, MP4 (see **Pipeline and audit**) |
+| `pages/<id>.html` | generated; open it in Chrome to scrub the film (`?t=2.5` jumps to a time, `?loop=cover` shows a loop). It loads `../src/` and `../node_modules/`, so open it where it is, inside the repo |
+| `pages/studio.html`, `pages/pip.html`, `pages/pipreel.html` | hand-written pages: the engine's own loops (`?loop=emotions`), Pip's sheets, the slapstick reel |
+| `tools/render.mjs` | headless renderer: sheets, strips, crops, stills, PNG loops, MP4, `--audit` |
+| `tools/make.mjs`, `videos/<id>.json` | one manifest per film → page, config, TTS, voice layout, audit, frames, MP4 (see **Pipeline and audit**) |
+| `tools/phone_render.mjs` | renders a film's frames in any browser on the network (e.g. a phone's GPU); writes the same frames as `make.mjs <id> frames` |
+| `audio/music_<id>.mjs` | each film's score (see **Music**) |
 
 ### Frames are pure functions of time
 
@@ -345,7 +351,7 @@ One film = one manifest, `videos/<id>.json` ([videos/mrna.json](videos/mrna.json
 
 ## Pip
 
-Pip is a small plum sprout: an egg-shaped plum body with a pale belly, stubby arms and feet, big eyes and a leaf on a stalk. It's drawn in flat wash with an ink outline and boils like everything else. That's the default design, not a rule: change it if the idea needs it. Within one video, though, keep every character on model, with the same shape and features in every shot. [docs/pip_reactions.png](docs/pip_reactions.png) is the model sheet, and [pip_readme.md](pip_readme.md) has every option.
+Pip is a small plum sprout: an egg-shaped plum body with a pale belly, stubby arms and feet, big eyes and a leaf on a stalk. It's drawn in flat wash with an ink outline and boils like everything else. That's the default design, not a rule: change it if the idea needs it. Within one video, though, keep every character on model, with the same shape and features in every shot. [docs/img/pip_reactions.png](docs/img/pip_reactions.png) is the model sheet, and [docs/PIP.md](docs/PIP.md) has every option.
 
 ```js
 pip(x, y, u, options)   // (x, y) = ground point between the feet; u = size unit
@@ -411,7 +417,7 @@ Options compose by spreading: `pip(x, y, u, { ...K.act(t, keys), armF: { at: [1,
 
 ### Slapstick
 
-Tom-and-Jerry gags live in `src/pip_toon.js` (`TOON`; every gag and option is in [pip_readme.md](pip_readme.md)). Each gag is a pose delta over time, laid over the mood with `TOON.mix()` and drawn with `TOON.pip()`:
+Tom-and-Jerry gags live in `src/pip_toon.js` (`TOON`; every gag and option is in [docs/PIP.md](docs/PIP.md)). Each gag is a pose delta over time, laid over the mood with `TOON.mix()` and drawn with `TOON.pip()`:
 
 ```js
 let o = MK.act(t, [[0, 'smug'], [L(8, 15.6), 'dizzy']]);
@@ -428,10 +434,11 @@ TOON.pip(x, y, 30, { ...o, key: 'p' });
 
 ## Music
 
-Every film has its own score, synthesised from scratch in `music_<id>.mjs` (see STUDIO.md):
+Every film has its own score, synthesised from scratch in `audio/music_<id>.mjs` (see docs/STUDIO.md):
 
+0. Point the manifest's `music` at the script (`"music": "audio/music_<id>.mjs"`). Inside it, keep paths relative to the repo root (`videos/<id>.json`, `assets/<id>_vo.wav`), like the existing scores.
 1. `bpm` and `offset` in the manifest set the tempo and the time of the first downbeat. Every idle, dance and `pulse()` then locks to the score, so write the score at the same tempo.
-2. `node make.mjs <id> music` runs the script and writes `assets/<id>_mix.wav`; `node make.mjs <id> encode` muxes it in.
+2. `node tools/make.mjs <id> music` runs the script and writes `assets/<id>_mix.wav`; `node tools/make.mjs <id> encode` muxes it in.
 3. Land hits, cuts and takes on beats (`beatN`, `pulse`). Cut on bar lines for big changes, and give each musical phrase its own visual.
 4. **Lyrics are not text.** Don't put words on screen. Act the meaning of a line instead.
 

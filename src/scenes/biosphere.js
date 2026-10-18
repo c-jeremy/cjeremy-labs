@@ -3,7 +3,7 @@
 // (cyanide in chewed plum leaves, ladybugs vs aphids vs ants, phages, the hypersensitive response, mycorrhiza), until it
 // flicks the frog out of the food web and the grasshoppers boom. Swept to the deep sea, where its sunlight is useless,
 // it sees the biosphere as one web and stops fighting. Then the shadow from the cold open returns: it's us.
-// See STORYBOARD_BIOSPHERE.md. No narration: every time is in seconds, on a 120 bpm grid (BEAT = .5 s).
+// See storyboards/biosphere.md. No narration: every time is in seconds, on a 120 bpm grid (BEAT = .5 s).
 (() => {
   const K = MK;
   const Z = {

@@ -1,6 +1,6 @@
 // pip_toon.js: Pip's slapstick kit, the global TOON. Tom-and-Jerry gags as pure functions of time, the effects that sell
 // them (speed lines, dust, a ghost left behind, impact stars, smoke, spray…) and the colour tints (soot, wet, blond…).
-// Load it after src/pip.js: "cast": ["src/pip.js", "src/pip_toon.js"]. See it all at pip.html?loop=pipReel.
+// Load it after src/pip.js: "cast": ["src/pip.js", "src/pip_toon.js"]. See it all at pages/pip.html?loop=pipReel.
 //
 // A gag returns a pose delta for pip(): {} before it starts and after it ends, and in between it moves dx/dy/sq/rot,
 // pops the eyes, drops the jaw and adds effects (fx). Lay gags over a mood with TOON.mix() and draw with TOON.pip():

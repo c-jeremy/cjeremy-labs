@@ -1,7 +1,7 @@
 // xenocortex.js: "Pip讲"人脑"小鼠", 311 s. Kaganovsky, Pașca et al., Nature 2026: mice engineered so most of the cortex
 // never forms (an Esco2 knockout in pallial cells, on an immunodeficient background) get a human cortical organoid
 // shortly after birth; it grows ×4.7 to fill ~92% of the cortex, wires into the thalamus, brainstem and spinal cord,
-// fires in sync, grows von Economo-like neurons, and serves as a disease model. See STORYBOARD_XENOCORTEX.md.
+// fires in sync, grows von Economo-like neurons, and serves as a disease model. See storyboards/xenocortex.md.
 // Props from mrna_kit.js (MK). Every time is tied to a voice line: L(i, d) = line i's start + d seconds.
 (() => {
   const K = MK;

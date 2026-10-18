@@ -344,7 +344,7 @@ function pipEmote(kind, x, y, u, dir = 1, key = '', head = null) {
 // Spread it into pip(): pip(x, y, u, { ...pipFeel('laugh', t), flip: true, key: 'p1' }). seed staggers several Pips.
 const PIP_FEELS = ['calm', 'happy', 'laugh', 'excited', 'wave', 'love', 'wink', 'smug', 'shy', 'idea', 'wow', 'confused',
   'worried', 'sad', 'cry', 'angry', 'strain', 'sleepy', 'dizzy', 'sing'];
-// The slapstick moods: the same, pushed to Tom-and-Jerry size (see the sheet at pip.html?loop=pipToon).
+// The slapstick moods: the same, pushed to Tom-and-Jerry size (see the sheet at pages/pip.html?loop=pipToon).
 const PIP_TOON_FEELS = ['shock', 'scream', 'ouch', 'ko', 'deadpan', 'blank', 'gulp', 'eek', 'scheme', 'blech', 'puff', 'bliss',
   'panic', 'furious', 'guffaw', 'munch', 'mortified'];
 function pipFeel(name, t, { seed = 0 } = {}) {

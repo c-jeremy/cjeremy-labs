@@ -4,7 +4,7 @@
 // dopamine β-hydroxylase), why loose copper is a poison and how chaperones pass it hand to hand (CTR1, ATOX1/CCS,
 // ATP7A/ATP7B, metallothionein), Menkes and Wilson disease, copper as a weapon, cuproptosis, food and zinc.
 // Pip is a genie who lives in a copper oil lamp and works on the molecules with its own hands, Tom-and-Jerry style.
-// See STORYBOARD_COPPER.md. Props from mrna_kit.js (MK); a few helpers are copied from thermo.js, meiosis.js and
+// See storyboards/copper.md. Props from mrna_kit.js (MK); a few helpers are copied from thermo.js, meiosis.js and
 // mrna.js (each says where it came from). Every time is tied to a voice line: L(i, d) = line i's start + d seconds.
 (() => {
   const K = MK;
@@ -2092,7 +2092,7 @@
   // ================================ placeholder for unbuilt shots ================================
   const todo = col => (t) => { K.wash(col, t, { key: 'todo' }); };
 
-  // ================================ the cover (its own design; node render.mjs --page=copper.html --loop=cover --stills=.5) ================================
+  // ================================ the cover (its own design; node tools/render.mjs --page=pages/copper.html --loop=cover --stills=.5) ================================
   // 「铜：你过关！」 copper clears the checkpoint: the membrane is a border wall, CTR1 the gate (green light, barrier up);
   // the copper sails through to a claw waiting inside; Pip the gatekeeper raises a green ✓ paddle; a radical is turned back.
   function stamp(x, y, r, rot, key) {                              // a red approval seal with a ✓

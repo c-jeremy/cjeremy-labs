@@ -2,7 +2,7 @@
 // from his pea counts. The paint table (blending) → the monastery garden (the cross, F1 all round, F2 3:1) → the
 // thinking board (pairs, one per gamete, the 2×2, the testcross, 假说—演绎法) → recap → inside a wrinkled seed (SBE1)
 // → two traits (four heaps, two 3:1s, 3/4 × 3/4) → the 4×4 grid → chromosomes → the paint table again.
-// See STORYBOARD_MENDEL.md. Every time is tied to a voice line: L(i, d) = line i's start + d seconds.
+// See storyboards/mendel.md. Every time is tied to a voice line: L(i, d) = line i's start + d seconds.
 (() => {
   const K = MK;
   const Z = {

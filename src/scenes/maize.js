@@ -2,7 +2,7 @@
 // wasp? The trail leads back to the maize: the caterpillar's spit gives it away, the plant answers with a chemical call
 // (化学信息: 信息源 → 信道 → 信息受体), the wasp follows it upwind. Then out to the ecosystem (neighbours listening in,
 // 种间关系, 负反馈调节), under the ground (β-石竹烯 and nematodes), and into the farm (生物防治).
-// See STORYBOARD_MAIZE.md. Every time is tied to a voice line: L(i, d) = line i's start + d seconds.
+// See storyboards/maize.md. Every time is tied to a voice line: L(i, d) = line i's start + d seconds.
 (() => {
   const K = MK;
   const Z = {
@@ -1074,7 +1074,7 @@
     if (io > 0) iris(at[0], at[1], lerp(1500, 0, easeIn(io)));
   }
 
-  // ================================ the cover (node render.mjs --page=maize.html --loop=cover --stills=.5) ================================
+  // ================================ the cover (node tools/render.mjs --page=pages/maize.html --loop=cover --stills=.5) ================================
   // c: the layout. The 16:9 cover uses the defaults; the 4:3 one (cover43, cropped to x 0–1440) packs the scene left.
   function coverArt(t, c = {}) {
     K.setT(t);
@@ -1100,7 +1100,7 @@
   LOOPS.cover43 = t => coverArt(t, { blade: [-160, 940, 1680, 690, 300], catU: .5, biteU: .45, pipU: .8, catS: 140, waspS: 112, pipS: 44 });
   LOOPS.cover.len = 1;
 
-  // ---------- test sheet of the cast (node render.mjs --page=maize.html --loop=props --stills=.5) ----------
+  // ---------- test sheet of the cast (node tools/render.mjs --page=pages/maize.html --loop=props --stills=.5) ----------
   LOOPS.props = t => {
     K.wash(Z.inside, t, { key: 'pr', blob: Z.insideBlob, rect: rectPts(-200, -200, W + 400, H + 400) });
     maize(260, 1040, 900, t, { key: 'm1', kernels: 1 });

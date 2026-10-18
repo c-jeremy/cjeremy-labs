@@ -18,7 +18,7 @@ boiling ink. The science is right, the shapes are friendly, and the only faces b
 - **The background recipe:** a flat wash, a few big soft blobs drifting slowly, small motes, and a *quiet context layer*
   at low contrast (microtubules, a mitochondrion, ER, free ribosomes). Context says where we are and never competes.
 - **Cover the whole camera.** Wide or panning shots need the wash to reach past the frame (paper strips are the classic
-  slip; `make.mjs <id> audit` catches them).
+  slip; `tools/make.mjs <id> audit` catches them).
 
 ```js
 K.wash(C.cyto, t, { key: 'a', blob: '#FBEBDD' });                       // ground + drifting blobs
@@ -140,7 +140,7 @@ K.swim(x, y, 32, t, { ...o, flip, talk: true }, 'pb');                  // talk:
     in the count; the opening scene returns at the end), so each new fact hangs on something already understood;
   - one musical motif kept for the recaps, so the ear learns "this is the summary".
 - A film timed like this runs 20–25% longer than back-to-back narration. That is the point: don't trim it back.
-  Worked example: `videos/meiosis.json` (`voice.starts`) and STORYBOARD_MEIOSIS.md.
+  Worked example: `videos/meiosis.json` (`voice.starts`) and `storyboards/meiosis.md`.
 
 ## Avoid
 

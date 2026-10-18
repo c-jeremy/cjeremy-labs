@@ -2,7 +2,7 @@
 // acetyl-CoA (matrix) → once round the citric-acid cycle (citrate, isocitrate, α-ketoglutarate, succinyl-CoA,
 // succinate, fumarate, malate, oxaloacetate: 2 CO₂, 3 NADH, 1 FADH₂, 1 GTP → ATP), the tally, which carbons leave,
 // where the energy goes (the inner membrane, O₂ → H₂O), why the cycle stops without oxygen, Krebs 1937, the hub, and
-// back to the breakfast table. See STORYBOARD_TCA.md. Props from mrna_kit.js (MK).
+// back to the breakfast table. See storyboards/tca.md. Props from mrna_kit.js (MK).
 // Every time is tied to a voice line: L(i, d) = line i's start + d seconds, so a retimed line moves its pictures.
 // Carbon colour code (all film): gold = carbons from food (glucose → acetyl), teal = the cycle's own (oxaloacetate).
 (() => {

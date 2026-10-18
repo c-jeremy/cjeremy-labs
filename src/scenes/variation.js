@@ -1,7 +1,7 @@
 // variation.js: "Pip讲变异与伴性遗传", 369 s. The royal disease: where a disease nobody had before comes from (one
 // base-pair substitution in F9, in one germ cell: 基因突变) and why it almost only strikes boys (F9 is on the X and a
 // boy has no backup: 伴X隐性遗传). Palace tree → blood → the base pair → splicing → what a mutation is → recap →
-// X and Y → crosses and pedigree → why boys → recap → the tree again → gene therapy. See STORYBOARD_VARIATION.md.
+// X and Y → crosses and pedigree → why boys → recap → the tree again → gene therapy. See storyboards/variation.md.
 // Every time is tied to a voice line: L(i, d) = line i's start + d seconds, so a retimed line moves its pictures.
 (() => {
   const K = MK;
@@ -1010,7 +1010,7 @@
     if (close > 0) iris(at[0], at[1], kf(close, [[0, 1900], [.6, 240], [.8, 220], [1, 0]], easeIn));
   }
 
-  // ================================ the cover (a still: node render.mjs --page=variation.html --loop=cover --stills=.5) ================================
+  // ================================ the cover (a still: node tools/render.mjs --page=pages/variation.html --loop=cover --stills=.5) ================================
   LOOPS.cover = t => {
     K.wash(Z.wall, t, { key: 'cv', blob: Z.wallBlob, rect: rectPts(-200, -200, W + 400, H + 400) });
     boilSeed('cvfl'); paint(rectPts(-200, 930, W + 400, 400), { wash: Z.floor, ink: null });

@@ -6,7 +6,7 @@
   "offset": 0,
   "cast": ["src/pip.js"],
   "scenes": ["src/scenes/mrna_kit.js", "src/scenes/selenium.js"],
-  "music": "music_selenium.mjs",
+  "music": "audio/music_selenium.mjs",
   "voice": {
     "model": "gemini-3.1-flash-tts-preview",
     "voice": "Sadaltager",
