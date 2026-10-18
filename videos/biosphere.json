@@ -1,0 +1,47 @@
+{
+  "id": "biosphere",
+  "title": "Pip大战生物圈",
+  "duration": 150,
+  "bpm": 120,
+  "offset": 0,
+  "cast": [
+    "src/pip.js"
+  ],
+  "scenes": [
+    "src/scenes/mrna_kit.js",
+    "src/scenes/biosphere.js"
+  ],
+  "music": "music_biosphere.mjs",
+  "audit": {
+    "ignore": [
+      {
+        "check": "clip-bottom",
+        "key": "pip:pc",
+        "from": 22,
+        "to": 34,
+        "why": "C close-up: Pip's face and stalk fill the frame, its body runs off the bottom on purpose"
+      },
+      {
+        "check": "clip-bottom",
+        "key": "pip:pe1",
+        "from": 50,
+        "to": 60,
+        "why": "E close-up on the leaf, same framing as C"
+      },
+      {
+        "check": "clip-top",
+        "key": "pip:pd1",
+        "from": 34,
+        "to": 36,
+        "why": "the camera dives past Pip down to its root tip"
+      },
+      {
+        "check": "overlap",
+        "key": "pip:pk",
+        "from": 136,
+        "to": 139.5,
+        "why": "the hand scoops soil around Pip and pats it: contact is the point"
+      }
+    ]
+  }
+}
