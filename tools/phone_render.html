@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Phone render</title>
 <!-- phone_render.html: the driver for phone_render.mjs. It loads the film page in a hidden frame, then loops: ask the
-     server for a frame number, render it with renderAt(), upload the JPEG. Keep this tab in front and the screen on. -->
+     server for a frame number, render it with renderAt(), upload the JPEG (scaled to job.w if the server asks; in audit mode
+     window.auditAt(t) goes up first). Keep this tab in front and the screen on. -->
 <style>
   :root { --bg: #1b1820; --fg: #eee; --dim: #9a93a6; --accent: #DC7FA0; }
   html, body { margin: 0; background: var(--bg); color: var(--fg); font: 15px system-ui, sans-serif; }
@@ -38,6 +39,11 @@ let running = false, wake = null;
 async function film() {                                        // wait until the film page says it's ready
   for (;;) { const w = frame.contentWindow; if (w && w.ready === true && w.renderAt) return w; await new Promise(r => setTimeout(r, 300)); }
 }
+async function shrink(url, wd) {                               // scale a frame down on the phone before uploading (previews, audit)
+  const img = new Image(); img.src = url; await img.decode();
+  const c = document.createElement('canvas'); c.width = wd; c.height = Math.round(wd * 9 / 16); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return await new Promise(r => c.toBlob(r, 'image/jpeg', .9));
+}
 film().then(w => { $('#stat').textContent = 'ready'; try { $('#gpu').textContent = 'GPU: ' + w.gpuInfo(); } catch (e) {} });
 async function keepAwake() { try { if ('wakeLock' in navigator) wake = await navigator.wakeLock.request('screen'); } catch (e) { log('no wake lock here (needs localhost or https): set a long screen timeout'); } }
 document.addEventListener('visibilitychange', () => { if (running && document.visibilityState === 'visible') keepAwake(); });
@@ -47,10 +53,12 @@ $('#go').onclick = async () => {
   const w = await film(); let n = 0, t0 = performance.now(), total = null;
   while (running) {
     let job; try { job = await (await fetch('/next', { cache: 'no-store' })).json(); } catch (e) { log('server unreachable, retrying'); await new Promise(r => setTimeout(r, 3000)); continue; }
+    if (job.wait) { $('#stat').textContent = 'waiting for the last frames (held by another browser, or a failed upload)…'; await new Promise(r => setTimeout(r, 5000)); continue; }
     if (job.done) { $('#stat').textContent = 'all frames done ✓'; running = false; $('#go').textContent = 'Start'; break; }
     if (total === null) total = job.left;
     try {
-      const url = await w.renderAt(job.t, 'image/jpeg', .94), blob = await (await fetch(url)).blob();
+      if (job.audit) { const ar = await w.auditAt(job.t), q = await fetch(`/audit/${job.i}`, { method: 'POST', body: JSON.stringify(ar) }); if (!q.ok) throw new Error(await q.text()); }
+      const url = await w.renderAt(job.t, 'image/jpeg', .94), blob = job.w ? await shrink(url, job.w) : await (await fetch(url)).blob();
       const r = await fetch(`/frame/${job.i}`, { method: 'POST', body: blob });
       if (!r.ok) throw new Error(await r.text());
       n++; const ms = (performance.now() - t0) / n;
