@@ -15,7 +15,7 @@ A pre-commit hook (`.githooks/pre-commit`) rejects MP4s and any file over 10 MB:
 | `audio/` | each film's score, `music_<id>.mjs` (plus the old per-film voice scripts `vo_dna.mjs`, `vo_pcr.mjs`) |
 | `assets/` | voice takes (`vo_<id>/lNN.wav`) and the generated voice, music and mix WAVs |
 | `pages/` | the studio pages: `<id>.html` (generated), `studio.html`, `pip.html`, `pipreel.html` |
-| `tools/` | `make.mjs` (the pipeline), `render.mjs` (headless renderer), `phone_render.mjs` + its driver page, `gpu_probe.mjs` |
+| `tools/` | `make.mjs` (the pipeline), `render.mjs` (headless renderer), `phone_render.mjs` + its driver page, `vo_audit.mjs` (laughs and ad-libs in voice takes), `gpu_probe.mjs` |
 | `docs/` | `STUDIO.md`, `STYLE.md`, `PIP.md`, notes; reference images in `docs/img/` |
 | `out/` | renders, frames, MP4s, captions: gitignored and disposable |
 
