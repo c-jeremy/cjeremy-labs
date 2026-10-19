@@ -4,6 +4,11 @@ Read this first. It says what this studio makes, which files a film needs and th
 (rules, timing, the review loop, the engine, Pip) is in [ANIMATION_GUIDE.md](../ANIMATION_GUIDE.md), and the series' look is
 in [docs/STYLE.md](STYLE.md).
 
+IMPORTANT: For every single video, you MUST first run `git pull` and then checkout a new branch **from remote branch main** named in the theme of
+the new video before working. 
+eg. if you are making a video about apples, first go git pull, and then create a new branch from main branch, named "apple", and then work. 
+
+
 ## What we make
 
 - **Mandarin science explainer films**, one topic each, in the series **Pip讲<topic>**: Pip讲mRNA疫苗, Pip讲光遗传学,
@@ -159,3 +164,4 @@ bold) suits the hand-painted look; draw it with `letter()` and an ink stroke.
 - **Keep the layout.** New files go in the folder for their kind (README.md has the map): manifests in `videos/`,
   storyboards and outlines in `storyboards/`, scenes in `src/scenes/`, scores in `audio/`, pages in `pages/`, scripts
   that drive the pipeline in `tools/`, docs in `docs/`. Don't add files at the repo root.
+- **git pull and then create a semantically-named branch before working**.
