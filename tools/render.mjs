@@ -12,12 +12,14 @@
 //     node tools/render.mjs --frames [--range=0:8] --workers=4                                     JPEG frames → out/frames (parallel, resumable)
 //     node tools/render.mjs --encode --out=out/video.mp4                                           out/frames → MP4
 //     (--frames-dir=out/<id>/frames keeps each film's frames apart; make.mjs passes it)
-//   Check it mechanically (paper showing, characters clipped / too small / overlapping big props), as time runs:
-//     node tools/render.mjs --audit [--step=.25] [--range=a:b] [--min-height=90] --out=out/audit.json
+//   Check it mechanically (paper showing, characters clipped / too small / overlapping big props as time runs; objects
+//   that jump or pop at a cut):
+//     node tools/render.mjs --audit [--step=.25] [--range=a:b] [--min-height=90] [--seams] [--cuts=t1,t2] --out=out/audit.json
 //   Standalone loops (LOOPS in the page): add --loop=<name> to any of the above (times are then loop times), or
 //     node tools/render.mjs --loop=emotions --png --out=out/loop_emotions                          one cycle as PNGs (for GIFs)
 //   Music: --audio=assets/song.mp3 (or PROJECT.audio) is muxed into --clip and --encode. Other flags: --fps=24,
-//   --chrome=<path to Chrome/Chromium>.
+//   --chrome=<path to Chrome/Chromium>, --scale=.25 (draw everything that much smaller, with flat fills in place of the watercolor ones: fast low-res
+//   previews; frames and stills come out .25 × 1920 wide, sheets and crops keep their sizes).
 import puppeteer from 'puppeteer-core';
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync, statSync, renameSync, readdirSync } from 'node:fs';
@@ -73,7 +75,7 @@ async function openPage(tag = '') {
   const page = await browser.newPage();
   page.on('console', m => { if (['error', 'warn'].includes(m.type())) console.log(`[page${tag}]`, m.text()); });
   page.on('pageerror', e => console.log(`[page error${tag}]`, e.message));
-  await page.goto(pathToFileURL(resolve(args.page || 'pages/studio.html')).href + '?render', { waitUntil: 'networkidle0', timeout: 0 });
+  await page.goto(pathToFileURL(resolve(args.page || 'pages/studio.html')).href + '?render' + (args.scale ? '&scale=' + args.scale : ''), { waitUntil: 'networkidle0', timeout: 0 });
   await page.waitForFunction('window.ready === true', { timeout: 60000 });
   if (args.loop) {
     const ok = await page.evaluate(name => { if (!LOOPS[name]) return false; window.LOOP = LOOPS[name]; return true; }, args.loop);
@@ -102,13 +104,17 @@ if (args.sheet || args.strip) {
   // groups hits into runs. Checks: paper (bare paper showing, > 0.3% of the frame), clip-<edge> (a character partly
   // off-frame by > 8% of its size; fully off-frame counts as an entrance/exit and is skipped), small (character shorter
   // than --min-height px on screen), overlap (a character's box > 25% covered by a box a prop registered via auditBox).
+  // Then at every cut, seam-*: the last frame of a shot and the first of the next, object by object (matched by kind,
+  // nearest first, since keys change from shot to shot). seam-jump: it moves > 40 px or changes height > 15%; seam-pop: it
+  // is on screen on one side only. Behind a full-frame flash, iris or wipe (they report cover > 0.97 on either side) the
+  // cut can't be seen, so those come out as seam-hidden-jump / seam-hidden-pop. --seams checks the cuts only (fast).
   const page = await openPage(), len = await lengthOf(page), step = +(args.step || .25), minH = +(args['min-height'] || 90);
   const [a, b] = args.range ? span(args.range) : [0, len], hits = [], start = Date.now();
   const isChar = x => x.kind === 'pip' || x.kind === 'clawd';
-  for (let i = 0, t = a; t <= b + 1e-6; t = a + ++i * step) {
+  for (let i = 0, t = a; !args.seams && t <= b + 1e-6; t = a + ++i * step) {
     const r = await page.evaluate(tt => window.auditAt(tt), +t.toFixed(3)), hit = (check, key, v) => hits.push({ t: r.t, shot: r.shot, check, key, v });
     if (r.paper > .003) hit('paper', '', r.paper);
-    const chars = r.boxes.filter(isChar), props = r.boxes.filter(x => !isChar(x));
+    const chars = r.boxes.filter(isChar), props = r.boxes.filter(x => !isChar(x) && !x.seam);
     for (const c of chars) {
       const w = c.x1 - c.x0, h = c.y1 - c.y0, id = c.kind + ':' + c.key;
       if (c.x1 < 0 || c.x0 > W_ || c.y1 < 0 || c.y0 > H_) continue;
@@ -120,11 +126,34 @@ if (args.sheet || args.strip) {
   hits.sort((x, y) => x.check.localeCompare(y.check) || x.key.localeCompare(y.key) || x.t - y.t);
   const runs = [];
   for (const h of hits) { const last = runs[runs.length - 1]; if (last && last.check === h.check && last.key === h.key && h.t - last.to <= step * 1.5 + 1e-6) { last.to = h.t; last.worst = h.check === 'small' ? Math.min(last.worst, h.v) : Math.max(last.worst, h.v); } else runs.push({ check: h.check, key: h.key, shot: h.shot, from: h.t, to: h.t, worst: h.v }); }
+  // the cuts
+  // --cuts=t1,t2,… adds switches inside a shot (a scene that changes its whole layout at a time) to the shots' own cuts
+  const extra = args.cuts ? String(args.cuts).split(',').map(Number).filter(Number.isFinite) : [];
+  const cuts = [...await page.evaluate(() => typeof SHOTS === 'undefined' ? [] : SHOTS.map(s => s[0])), ...extra].sort((x, y) => x - y), onScreen = x => x.x1 > 0 && x.x0 < W_ && x.y1 > 0 && x.y0 < H_;
+  const mid = x => [(x.x0 + x.x1) / 2, (x.y0 + x.y1) / 2];
+  let nCuts = 0;
+  for (const s of cuts.filter(s => s > a && s <= b)) {
+    nCuts++;
+    const A = await page.evaluate(tt => window.auditAt(tt), +(s - 1 / fps).toFixed(4)), B = await page.evaluate(tt => window.auditAt(tt), s);
+    const cover = Math.max(A.cover || 0, B.cover || 0), pre = cover > .97 ? 'seam-hidden-' : 'seam-', seam = (check, key, v) => runs.push({ check: pre + check, key, shot: B.shot, from: s, to: s, worst: v, cover: +cover.toFixed(3) });
+    const La = A.boxes.filter(onScreen), Lb = B.boxes.filter(onScreen);
+    for (const kind of new Set([...La, ...Lb].map(x => x.kind))) {
+      const P = La.filter(x => x.kind === kind), Q = Lb.filter(x => x.kind === kind), pairs = [], usedP = new Set(), usedQ = new Set();
+      P.forEach((p, i) => Q.forEach((q, j) => pairs.push([Math.hypot(mid(p)[0] - mid(q)[0], mid(p)[1] - mid(q)[1]), i, j])));
+      for (const [d, i, j] of pairs.sort((x, y) => x[0] - y[0])) {
+        if (usedP.has(i) || usedQ.has(j)) continue; usedP.add(i); usedQ.add(j);
+        const hp = P[i].y1 - P[i].y0, hq = Q[j].y1 - Q[j].y0, grow = Math.max(hp, hq) / Math.max(1, Math.min(hp, hq));
+        if (d > 40 || grow > 1.15) seam('jump', `${kind}:${P[i].key} → ${kind}:${Q[j].key}  (×${grow.toFixed(2)} size)`, d);
+      }
+      P.forEach((p, i) => { if (!usedP.has(i)) seam('pop', `${kind}:${p.key} → gone`, 0); });
+      Q.forEach((q, j) => { if (!usedQ.has(j)) seam('pop', `none → ${kind}:${q.key}`, 0); });
+    }
+  }
   runs.sort((x, y) => x.from - y.from);
   const out = args.out || 'out/audit.json'; mkdirSync(dirname(out), { recursive: true }); writeFileSync(out, JSON.stringify(runs, null, 1));
-  const fmt = r => r.check === 'small' ? `${Math.round(r.worst)}px` : r.check === 'paper' ? `${(r.worst * 100).toFixed(1)}%` : `${Math.round(r.worst * 100)}%`;
-  for (const r of runs) console.log(`shot ${String(r.shot).padStart(2)}  ${r.from.toFixed(2).padStart(7)}–${r.to.toFixed(2).padEnd(7)} ${r.check.padEnd(12)} ${fmt(r).padStart(6)}  ${r.key}`);
-  console.log(`${runs.length} runs from ${hits.length} hits, ${Math.round((b - a) / step) + 1} samples in ${((Date.now() - start) / 1000).toFixed(0)} s → ${out}`);
+  const fmt = r => r.check === 'small' || r.check.endsWith('jump') ? `${Math.round(r.worst)}px` : r.check.endsWith('pop') ? '' : r.check === 'paper' ? `${(r.worst * 100).toFixed(1)}%` : `${Math.round(r.worst * 100)}%`;
+  for (const r of runs) console.log(`shot ${String(r.shot).padStart(2)}  ${r.from.toFixed(2).padStart(7)}–${r.to.toFixed(2).padEnd(7)} ${r.check.padEnd(16)} ${fmt(r).padStart(6)}  ${r.key}`);
+  console.log(`${runs.length} runs from ${hits.length} hits, ${args.seams ? 0 : Math.round((b - a) / step) + 1} samples and ${nCuts} cuts in ${((Date.now() - start) / 1000).toFixed(0)} s → ${out}`);
 } else if (args.stills) {
   const page = await openPage(), out = args.out || 'out/stills'; mkdirSync(out, { recursive: true });
   console.log('GPU:', await page.evaluate(() => window.gpuInfo()));

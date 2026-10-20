@@ -2,6 +2,8 @@
 // pip(x, y, u, o): (x, y) = ground point between the feet; body 3.6u wide, 5u tall, plus the leaf. Options:
 //   flip, turn, sq, dy, rot, face (calm|happy|idea|strain|wow|star), blink, lookX/lookY, armF/armB ([ang, len] or {to}),
 //   armsFront, walk, kick, leaf, blush, noShadow, key; weight scales the ink (bolder for tiny uses, like icons). Arms also take {at: [x, y]} in u units (local, unflipped).
+//   {to: [x, y]} is in px but also local and unflipped: with flip, +x points the way Pip faces (zinc.js reachTo puts a hand on a world point).
+//   soreF/soreB (0..1): that hand red, swollen and throbbing (after punching something hard).
 // More faces: laugh, love, wink, smug, shy, sad, worried, angry, sleepy, dizzy. Extras: tear (0..1), emote (sweat, anger,
 //   heart, zzz, sparkle, question, exclaim, note) with emoteK (0..1, its pop-in). pipFeel(name, t) acts a whole mood.
 // Slapstick faces (PIP_FACES: a base face plus parts): shock, scream, ouch, ko, deadpan, blank, gulp, eek, scheme, blech,
@@ -67,7 +69,9 @@ function pip(x, y, u, o = {}) {
     const mid = [S[0] + vx * .5 + px * bend, S[1] + vy * .5 + py * bend];
     const lit = YAW === null || Math.abs(Math.sin(YAW)) < .05 ? side > 0 : near(side);
     paint(X_(ribbon(front || over ? [S, mid, T] : [[S[0] - side * .6 * u, S[1] + .1 * u], S, mid, T], (front ? .5 : .62) * u, .42 * u)), { wash: lit ? PIPC.pip : PIPC.pipDk, ink: PAL.ink, sw: sw * .8 });
-    paint(ellPts(T[0] * cyaw, T[1], .3 * u, .3 * u, 12, j * .5), { wash: lit ? PIPC.pip : PIPC.pipDk, ink: PAL.ink, sw: sw * .7 });
+    const sore = clamp((side > 0 ? o.soreF : o.soreB) || 0), hr = .3 * u * (1 + .5 * sore);   // a sore hand: red, swollen, throbbing
+    paint(ellPts(T[0] * cyaw, T[1], hr, hr, 12, j * .5), { wash: sore > 0 ? mixCol(lit ? PIPC.pip : PIPC.pipDk, '#E2483D', .8 * sore) : lit ? PIPC.pip : PIPC.pipDk, ink: PAL.ink, sw: sw * .7 });
+    if (sore > .3) for (const a of [-1.1, -.55, 0]) { const c = Math.cos(a) * side, s_ = Math.sin(a); inkLine([[T[0] * cyaw + c * hr * 1.4, T[1] + s_ * hr * 1.4], [T[0] * cyaw + c * hr * 2.1, T[1] + s_ * hr * 2.1]], sw * .8, PAL.ink, 'inkfine', 0); }
   };
   if (!o.armsFront) { if (!near(-1)) arm(-1, o.armB); if (!near(1)) arm(1, o.armF); }
 
@@ -178,16 +182,18 @@ function pip(x, y, u, o = {}) {
       const w = .6 * u, d = (.45 + .55 * jaw) * u, top = my - .24 * u;
       hole([[mx - w, top], [mx + w, top], ...band(12, k => [mx + Math.cos(k * Math.PI) * w * .94, top + .04 * u + Math.sin(k * Math.PI) * d]).slice(1, 12)]);
       paint(ellPts(mx, top + d * .78, w * .46, Math.min(d * .17, .26 * u), 12), { wash: PIPC.rose, ink: null });
-      paint([[mx - w * .9, top + .03 * u], [mx + w * .9, top + .03 * u], [mx + w * .8, top + .19 * u], [mx - w * .8, top + .19 * u]], { wash: PAL.cream, ink: PAL.ink, sw: sw * .4 });
-      for (const k of [-.45, 0, .45]) inkLine([[mx + k * w, top + .05 * u], [mx + k * w, top + .18 * u]], sw * .35, PAL.ink, 'inkfine', 0);
-    } else if (mk === 'teeth') {                       // a clenched toothy grin; jaw (0..1) opens a chattering gap
-      const w = .6 * u, g = clamp(o.jaw ?? 0) * .3 * u, c = k => (2 * k - 1) * (2 * k - 1);
-      const top = k => my - .17 * u - .1 * u * c(k), mid = k => my + .01 * u - .1 * u * c(k), bot = k => my + .17 * u + g - .12 * u * c(k), X = k => mx - w + 2 * w * k;
-      paint([...band(10, k => [X(k), top(k)]), ...band(10, k => [X(1 - k), bot(1 - k)])], { wash: PAL.cream, ink: PAL.ink, sw: sw * .7 });
-      if (g > .5) paint([...band(10, k => [X(k), mid(k)]).slice(1, 10), ...band(10, k => [X(1 - k), mid(1 - k) + g]).slice(1, 10)], { wash: PIPC.mouth, ink: null });
-      inkLine(band(10, k => [X(k), mid(k)]), sw * .45, PAL.ink, 'inkfine', .4);
-      if (g > .5) inkLine(band(10, k => [X(k), mid(k) + g]), sw * .45, PAL.ink, 'inkfine', .4);
-      for (let i = 1; i < 6; i++) { const k = i / 6; inkLine([[X(k), top(k) + .02 * u], [X(k), mid(k)]], sw * .35, PAL.ink, 'inkfine', 0); inkLine([[X(k), mid(k) + g], [X(k), bot(k) - .02 * u]], sw * .35, PAL.ink, 'inkfine', 0); }
+      const tb = x => top + (.12 + .06 * Math.cos(Math.PI * .5 * x / w)) * u;   // the upper teeth: a row hugging the lip, deepest in the middle
+      paint([[mx - w * .9, top + .03 * u], [mx + w * .9, top + .03 * u], ...band(12, k => { const x = w * (.84 - 1.68 * k); return [mx + x, tb(x)]; })], { wash: PAL.cream, ink: PAL.ink, sw: sw * .35, curv: .3 });
+      for (const k of [-.5, -.17, .17, .5]) inkLine([[mx + k * w, top + .05 * u], [mx + k * w, tb(k * w) - .02 * u]], sw * .3, PAL.ink, 'inkfine', 0);
+    } else if (mk === 'teeth') {                       // a clenched grimace: a crescent of teeth tapering to creased corners; jaw (0..1) opens a chattering gap
+      const w = .56 * u, g = clamp(o.jaw ?? 0) * .26 * u, cy = my - .12 * u, X = k => mx - w + 2 * w * k, p = k => Math.pow(Math.sin(Math.PI * k), .7);
+      const top = k => cy + .05 * u * Math.sin(Math.PI * k), mid = k => cy + .17 * u * p(k), low = k => mid(k) + g * p(k), bot = k => cy + (.34 * u + g) * p(k);
+      paint([...band(14, k => [X(k), top(k)]), ...band(14, k => [X(1 - k), bot(1 - k)]).slice(1, 14)], { wash: PAL.cream, ink: PAL.ink, sw: sw * .6 });
+      if (g > .5) paint([...band(14, k => [X(k), mid(k)]).slice(1, 14), ...band(14, k => [X(1 - k), low(1 - k)]).slice(1, 14)], { wash: PIPC.mouth, ink: null });
+      inkLine(band(14, k => [X(k), mid(k)]), sw * .4, PAL.ink, 'inkfine', .3);
+      if (g > .5) inkLine(band(14, k => [X(k), low(k)]), sw * .4, PAL.ink, 'inkfine', .3);
+      for (const k of [.2, .35, .5, .65, .8]) { inkLine([[X(k), top(k) + .02 * u], [X(k), mid(k)]], sw * .3, PAL.ink, 'inkfine', 0); inkLine([[X(k), low(k)], [X(k), bot(k) - .02 * u]], sw * .3, PAL.ink, 'inkfine', 0); }
+      for (const s of [-1, 1]) inkLine([[mx + s * (w + .03 * u), cy - .11 * u], [mx + s * (w + .1 * u), cy], [mx + s * (w + .03 * u), cy + .11 * u]], sw * .45, PAL.ink, 'inkfine', .5);   // the corners, pulled back
     } else if (mk === 'evil') {                        // a wide crescent grin with a row of teeth: up to no good
       const w = .68 * u, top = k => my - .1 * u - .24 * u * (2 * k - 1) * (2 * k - 1), X = k => mx - w + 2 * w * k;
       hole([...band(12, k => [X(k), top(k)]), ...band(12, k => [X(1 - k), top(1 - k) + .46 * u * Math.pow(Math.sin((1 - k) * Math.PI), .8)]).slice(1, 12)]);

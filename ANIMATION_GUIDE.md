@@ -238,7 +238,7 @@ One film = one manifest, `videos/<id>.json` ([videos/mrna.json](videos/mrna.json
 - **Voice order:** `tts` → `listen` (optional) → `pauses` (each line's length and breaths, plus a back-to-back draft of `starts`) → set `starts` → `vo` → `music`. After regenerating a line, rerun `pauses` and `vo`, and move any scene times after it.
 - **Captions:** `tools/make.mjs <id> srt` writes `out/<id>/<title>.srt` for upload (Bilibili: 字幕 → 上传字幕). It splits the lines at their punctuation and times the chunks to the voice's real pauses. `voice.show` maps spoken spellings back to written ones for the captions only (五撇端 → 5′端). Rerun it whenever lines or `starts` change.
 - **TTS notes** (Gemini on Vertex): write lines the way they should be *said* (五撇端, not 5′端; "TLR", because "Toll" gets misread). `listen` transcribes with another model and isn't deterministic: the same audio can come back differently, so treat it as a sanity check, not proof. Call the API from Node, not curl in zsh, because zsh eats `$model:generateContent`.
-- **Audit:** `tools/make.mjs <id> audit [--step=.25] [--range=a:b]`. It samples the film and prints runs: `paper` (bare paper > 0.3% of the frame), `clip-<edge>` (a character partly off-frame; fully off is an entrance and is skipped), `small` (a character under 90 px tall), `overlap` (a character's box over 25% covered by a prop's).
+- **Audit:** `tools/make.mjs <id> audit [--step=.25] [--range=a:b]`. It samples the film and prints runs: `paper` (bare paper > 0.3% of the frame), `clip-<edge>` (a character partly off-frame; fully off is an entrance and is skipped), `small` (a character under 90 px tall), `overlap` (a character's box over 25% covered by a prop's). At every cut it also compares the last frame of a shot with the first of the next, object by object: `seam-jump` (an object moves over 40 px or changes height over 15%) and `seam-pop` (on screen on one side only); behind a full-frame flash, iris or wipe they come out as `seam-hidden-*`. `audit --seams` runs just the cuts (fast) into `out/<id>/seams.json`; add `--cuts=t1,t2,…` to check the scene switches inside a shot too (an `if (t < L(…))` branch that swaps the layout). A prop is followed across cuts once it calls `auditBox(kind, key, x0, y0, x1, y1, true)`.
   - `pip()` reports its box itself. Make a big prop checkable by calling `auditBox(kind, key, x0, y0, x1, y1)` (world coords) in its draw function.
   - Boxes follow the camera but not transforms your scene pushes itself.
   - When a hit is on purpose, add it to `audit.ignore` with a `why`.
@@ -262,9 +262,9 @@ One film = one manifest, `videos/<id>.json` ([videos/mrna.json](videos/mrna.json
 | `src/timeline.js` | `shots()`, `LOOPS`, `brushWipe()` |
 | `pages/<id>.html` | generated; open it in Chrome to scrub the film (`?t=2.5` jumps to a time, `?loop=cover` shows a loop). It loads `../src/` and `../node_modules/`, so open it where it is, inside the repo |
 | `pages/studio.html`, `pages/pip.html`, `pages/pipreel.html` | hand-written pages: the engine's own loops (`?loop=emotions`), Pip's sheets, the slapstick reel |
-| `tools/render.mjs` | headless renderer: sheets, strips, crops, stills, PNG loops, MP4, `--audit` |
+| `tools/render.mjs` | headless renderer: sheets, strips, crops, stills, PNG loops, MP4, `--audit`; `--scale=.25` draws everything that much smaller, with flat fills in place of the watercolor ones (fast low-res previews) |
 | `tools/make.mjs`, `videos/<id>.json` | one manifest per film → page, config, TTS, voice layout, audit, frames, MP4 (see **Pipeline and audit**) |
-| `tools/phone_render.mjs` | renders a film's frames in any browser on the network (e.g. a phone's GPU); writes the same frames as `make.mjs <id> frames` |
+| `tools/phone_render.mjs` | renders a film's frames in any browser on the network (e.g. a phone's GPU); writes the same frames as `make.mjs <id> frames`; `--lowres` draws previews at 480×270 (or `--w`) with flat fills, instead of shrinking full frames |
 | `audio/music_<id>.mjs` | each film's score (see **Music**) |
 
 ### Frames are pure functions of time
@@ -312,6 +312,8 @@ One film = one manifest, `videos/<id>.json` ([videos/mrna.json](videos/mrna.json
     `inkLine`s no bigger than the canvas.
   - Outline weight is in world units, so it grows with the camera's zoom: a fine outline on a small shape becomes a
     dark blob in a close-up. Scale `sw` down with the zoom for small shapes.
+  - A two-point `inkLine` (or spline) with a curve above 0 draws nothing at all. Use curve 0 for a straight
+    stroke, or give it a middle point (a snail's eye stalks went missing this way).
   - A NaN in a point list throws `Failed to construct 'OffscreenCanvas': Value is not of type 'unsigned long'`, with
     a stack pointing at your scene rather than the NaN. Guard geometry that can degenerate (`Math.acos` of a ratio > 1).
   - p5 `push()/pop()/translate()/rotate()/scale()` work with all brush calls.

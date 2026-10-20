@@ -1,0 +1,120 @@
+{
+  "id": "pistol",
+  "title": "Pip讲枪虾",
+  "duration": 192.4,
+  "bpm": 92,
+  "offset": 0,
+  "cast": [
+    "src/pip.js",
+    "src/pip_toon.js"
+  ],
+  "scenes": [
+    "src/scenes/mrna_kit.js",
+    "src/scenes/pistol.js"
+  ],
+  "music": "audio/music_pistol.mjs",
+  "workflow": {
+    "mode": "oneshot",
+    "preview": true,
+    "previewNote": "a really low-res demo at 12 fps on the phone (the user asked for this on 2026-10-19)"
+  },
+  "voice": {
+    "model": "gemini-3.1-flash-tts-preview",
+    "voice": "Sadaltager",
+    "language": "cmn-CN",
+    "keyFile": "tts_api_key.txt",
+    "style": "你是一位很会讲故事的男性科普视频旁白，面对高中生、大学生和对生物好奇的成年人。用自然、地道、沉稳又有感染力的普通话，像给朋友讲一个精彩的发现。这一期节奏更紧凑：语速比平时稍快，干脆利落，句间停顿短而自然；提问时留一点悬念，讲到惊人的事实带着由衷的惊叹，讲到滑稽的地方语气轻快俏皮，冷幽默的句子说得一本正经。念完最后一个字就收住，不要在句尾加笑声。只朗读下面这段话，一字不差，不要添加或重复任何内容：\n",
+    "show": {
+      "二〇〇〇年": "2000年",
+      "一毫秒": "1毫秒",
+      "二十多米": "20多米",
+      "一百度": "100度",
+      "虾致发光": "“虾致发光”",
+      "这就叫空化": "这就叫“空化”",
+      "直接沸腾": "直接“沸腾”",
+      "四千七百多摄氏度": "4700多摄氏度",
+      "声纳": "声呐"
+    },
+    "lines": [
+      "这一枪是真的。Pip刚刚被震了个人仰马翻，开枪的，是礁石缝里这只还没手指长的小虾。",
+      "它叫枪虾，也叫鼓虾。一只螯小小的，另一只大得出奇，差不多有半个身子那么长。",
+      "一大片枪虾一起开枪，噼噼啪啪，是海里最吵的动物声音之一。二战时，美国海军的声纳就常被它们干扰。",
+      "可是放慢了再看，大螯合上的时候，根本就没碰到Pip。那这一枪的子弹，到底是什么？",
+      "先看这把枪。大螯的可动指上，长着一个小凸起，正好对着不动指上的一个小凹槽。",
+      "开枪前，枪虾先把大螯张开、锁住，就像扳起手枪的击锤；肌肉慢慢收紧，像压弹簧一样，把劲儿一点点存起来。",
+      "锁一松开，大螯不到一毫秒就猛地合上，凸起插进凹槽，把里面的水像水枪一样挤了出去。",
+      "这股水流每秒能冲出二十多米。而水流得越快，压强就越低。",
+      "你知道，高原上气压低，水不到一百度就开了。这里的压强低得多，常温的海水直接沸腾，鼓出一个气泡。",
+      "这就叫空化。可这个几毫米的气泡撑不了多久，周围的海水一挤，它就猛地塌了下去。",
+      "二〇〇〇年，科学家用高速摄像机和水听器同时录下了全过程：那一声枪响，不是大螯两指相撞，而是气泡塌陷的那一下。",
+      "气泡塌到最小的一瞬间，里面的气体被压得滚烫，估计有四千七百多摄氏度，快赶上太阳表面了。",
+      "它还会闪出一点光，科学家叫它虾致发光。只是这光又暗又短，人眼根本看不见。",
+      "真正打中猎物的，是气泡塌陷时炸开的冲击波。离得很近的小鱼、小虾被它一震，就昏了过去。",
+      "枪虾眼神很差，靠触角感觉水里的动静。猎物一靠近，砰的一枪，再把昏过去的猎物撕开，慢慢吃掉。",
+      "回顾一下：锁住大螯，猛地合上，喷出急流；压强骤降，海水沸成气泡；气泡一塌，就是巨响、闪光和冲击波。",
+      "所以，刚才打中Pip的，根本不是钳子，而是泡泡塌下去的那一下。一只几厘米的小虾，用泡泡做子弹。"
+    ],
+    "starts": [
+      9.8,
+      18.88,
+      27.99,
+      38.5,
+      48.34,
+      56.87,
+      67.8,
+      78.31,
+      86.22,
+      96.82,
+      105.6,
+      118.92,
+      128.75,
+      137.96,
+      148.64,
+      160.12,
+      174.86
+    ]
+  },
+  "audit": {
+    "ignore": [
+      {
+        "check": "clip",
+        "key": "pip:a2rpip",
+        "from": 39.9,
+        "to": 40.95,
+        "why": "the replay camera pushes in past Pip to the claw and the microphone (L4)"
+      },
+      {
+        "check": "clip",
+        "key": "pip:a2rpip",
+        "from": 45.05,
+        "to": 45.75,
+        "why": "the replay camera pulls back out to Pip (L4)"
+      },
+      {
+        "check": "clip",
+        "key": "pip:e1pip",
+        "from": 137.9,
+        "to": 141.6,
+        "why": "Pip swims in from off-screen left in the paper-fish hat (start of E1, L14)"
+      },
+      {
+        "check": "clip",
+        "key": "pip:e1pip2",
+        "from": 151,
+        "to": 151.7,
+        "why": "the camera pulls out from the shrimp's dim eyes and finds Pip sneaking up (L15)"
+      },
+      {
+        "check": "clip",
+        "key": "pip:k1pip",
+        "from": 181.2,
+        "to": 182.6,
+        "why": "the camera pulls out from the claw to reveal Pip behind the sandbag (K1)"
+      },
+      {
+        "check": "seam-hidden",
+        "why": "every cut except A1→A2 is behind a full-frame flash or brush wipe that changes the set (checked 2026-10-19)"
+      }
+    ]
+  }
+}
