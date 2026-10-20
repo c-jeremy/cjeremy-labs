@@ -7,6 +7,9 @@
 //   node tools/phone_render.mjs <id> [--port=8787] [--range=a:b]      then open http://<this machine's IP>:8787/ on the phone
 //   --fps=6 --dir=out/<id>/demo_frames                                 a low-frame-rate draft into its own folder (defaults: 24, frames)
 //   --w=960                                                            the phone scales each JPEG down to this width before uploading
+//   --lowres [--w=480]                                                 previews: the phone DRAWS at that width (default 480, i.e. 480×270)
+//                                                                      instead of drawing 1920 wide and shrinking, with flat fills in place
+//                                                                      of the watercolor ones: several times faster
 //   --audit [--step=1] --dir=out/<id>/audit_frames                     the mechanical audit (as tools/render.mjs --audit) run on the phone:
 //                                                                      each sample uploads window.auditAt(t) and a small JPEG; the runs
 //                                                                      land in out/<id>/audit.json when the last sample is in (resumable)
@@ -23,6 +26,7 @@ if (!id) { console.log(readFileSync(new URL(import.meta.url), 'utf8').split('\n'
 const flags = Object.fromEntries(rest.filter(a => a.startsWith('--')).map(a => { const [k, v] = a.slice(2).split('='); return [k, v ?? true]; }));
 const AUD = !!flags.audit, STEP = +(flags.step || 1), M = JSON.parse(readFileSync(`videos/${id}.json`, 'utf8')), FPS = AUD ? 1 / STEP : +(flags.fps || 24), PORT = +(flags.port || 8787);
 const DIR = flags.dir || `out/${id}/frames`; mkdirSync(DIR, { recursive: true });
+const OUTW = +(flags.w || (flags.lowres ? 480 : 0)), SCALE = flags.lowres ? +(OUTW / 1920).toFixed(5) : 0;   // --lowres: the page draws at OUTW
 const [a, b] = flags.range ? flags.range.split(':').map(Number) : [0, M.duration];
 const first = Math.round(a * FPS), last = Math.min(Math.ceil(M.duration * FPS) - 1, Math.round(b * FPS) - 1);
 const AUDF = `${DIR}/audit.jsonl`, AR = new Map();               // audit mode: one auditAt() result per sample, kept on disk so a run resumes
@@ -49,8 +53,8 @@ const send = (res, code, body, type = 'text/plain; charset=utf-8') => { res.writ
 
 createServer((req, res) => {
   const url = new URL(req.url, 'http://x'), p = decodeURIComponent(url.pathname);
-  if (p === '/') { res.writeHead(302, { Location: `/tools/phone_render.html?id=${encodeURIComponent(id)}` }); return res.end(); }
-  if (p === '/next') { const i = next(), busy = i === null && todo.some(j => !isDone(j)); return send(res, 200, JSON.stringify(i === null ? (busy ? { wait: true } : { done: true }) : { i, t: +(i / FPS).toFixed(3), left: todo.length - done, audit: AUD, w: +(flags.w || 0) }), 'application/json'); }
+  if (p === '/') { res.writeHead(302, { Location: `/tools/phone_render.html?id=${encodeURIComponent(id)}${SCALE ? `&scale=${SCALE}` : ''}` }); return res.end(); }
+  if (p === '/next') { const i = next(), busy = i === null && todo.some(j => !isDone(j)); return send(res, 200, JSON.stringify(i === null ? (busy ? { wait: true } : { done: true }) : { i, t: +(i / FPS).toFixed(3), left: todo.length - done, audit: AUD, w: OUTW, scale: SCALE }), 'application/json'); }
   const ma = p.match(/^\/audit\/(\d+)$/);
   if (ma && req.method === 'POST' && AUD) {
     const i = +ma[1], chunks = []; req.on('data', c => chunks.push(c));
@@ -80,13 +84,15 @@ createServer((req, res) => {
   console.log(`open on the phone:  ${[...ips, 'localhost'].map(ip => `http://${ip}:${PORT}/`).join('   ')}`);
 });
 
-// the audit's runs, as tools/render.mjs --audit groups them (paper > 0.3 %, clip-<edge> > 8 %, small < 90 px, overlap > 25 %)
+// the audit's runs, as tools/render.mjs --audit groups them (paper > 0.3 %, clip-<edge> > 8 %, small < 90 px, overlap > 25 %).
+// The seam check (objects that jump or pop at a cut) needs two exact frames per cut, so it runs on the laptop:
+// node tools/make.mjs <id> audit --seams
 function report() {
   const W_ = 1920, H_ = 1080, minH = +(flags['min-height'] || 90), hits = [], isChar = x => x.kind === 'pip' || x.kind === 'clawd';
   for (const r of [...AR.values()].sort((x, y) => x.t - y.t)) {
     const hit = (check, key, v) => hits.push({ t: r.t, shot: r.shot, check, key, v });
     if (r.paper > .003) hit('paper', '', r.paper);
-    const chars = r.boxes.filter(isChar), props = r.boxes.filter(x => !isChar(x));
+    const chars = r.boxes.filter(isChar), props = r.boxes.filter(x => !isChar(x) && !x.seam);
     for (const c of chars) {
       const w = c.x1 - c.x0, h = c.y1 - c.y0, cid = c.kind + ':' + c.key;
       if (c.x1 < 0 || c.x0 > W_ || c.y1 < 0 || c.y0 > H_) continue;

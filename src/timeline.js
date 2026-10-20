@@ -37,10 +37,12 @@ function brushWipe(p, cols = [PAL.clayDk, PAL.clay]) {
   if (p <= 0 || p >= 1) return;
   const [c1, c2] = cols, n = 5, bh = (H + 420) / n + 40;
   push(); translate(W / 2, H / 2); rotate(-.1); translate(-W / 2, -H / 2);
+  let cover = 1;                                                   // for the audit: the share of the frame's width the thinnest band hides
   for (let i = 0; i < n; i++) {
     const y0 = -230 + i * (H + 420) / n, d = [0, .14, .06, .18, .1][i];
     const q = p < .5 ? easeOut(clamp((p * 2 - d) / (1 - d))) : ease(clamp(((p - .5) * 2 - d) / (1 - d)));
     const x0 = p < .5 ? -300 : lerp(-300, W + 400, q), x1 = p < .5 ? lerp(-300, W + 400, q) : W + 400;
+    cover = Math.min(cover, clamp((Math.min(x1, W) - Math.max(x0, 0)) / W));
     if (x1 - x0 < 30) continue;
     const pts = [], rag = k => 40 + 50 * hash(i * 31 + k) + jit(12);
     for (let k = 0; k <= 8; k++) pts.push([lerp(x0, x1, k / 8), y0 + Math.sin(k * .9 + i) * 14 + jit(5)]);
@@ -51,4 +53,5 @@ function brushWipe(p, cols = [PAL.clayDk, PAL.clay]) {
       hatch: { d: 44, a: 0, o: { rand: .6, gradient: .5 }, b: 'charcoal', c: i % 2 ? c2 : PAL.cream, w: .8 } });
   }
   pop();
+  if (AUDIT) AUDIT.cover = Math.max(AUDIT.cover, cover);
 }

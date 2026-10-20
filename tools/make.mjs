@@ -11,6 +11,8 @@
 //   node tools/make.mjs <id> music                run the film's music script (it reads assets/<id>_vo.wav, writes assets/<id>_mix.wav)
 //   node tools/make.mjs <id> sheet t1,t2,...      contact sheet → out/<id>/check/sheet.jpg (extra args go to render.mjs)
 //   node tools/make.mjs <id> audit [--step=.25]   mechanical checks, minus the manifest's audit.ignore → out/<id>/audit.json
+//   node tools/make.mjs <id> audit --seams        just the cuts: objects that jump or pop between shots → out/<id>/seams.json
+//                                  [--cuts=t1,…]  also check these times (scene switches inside a shot)
 //   node tools/make.mjs <id> frames [--workers=6] all frames → out/<id>/frames (parallel, resumable)
 //   node tools/make.mjs <id> encode               out/<id>/frames + assets/<id>_mix.wav → out/<id>/<title>.mp4
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
@@ -217,15 +219,16 @@ ${scripts}
 
 } else if (cmd === 'audit') {
   mkdirSync(OUT, { recursive: true });
-  render(['--audit', `--out=${OUT}/audit_raw.json`, ...rest.filter(a => a.startsWith('--'))]);
+  const name = flags.seams ? 'seams' : 'audit';                // --seams writes its own file, so a full (phone) audit.json stays
+  render(['--audit', `--out=${OUT}/${name}_raw.json`, ...rest.filter(a => a.startsWith('--'))]);
   // drop runs the film means to have (manifest audit.ignore: {check, key, from, to, why}); check matches by prefix, key by substring
   const ign = (M.audit && M.audit.ignore) || [], keep = [];
-  for (const r of JSON.parse(readFileSync(`${OUT}/audit_raw.json`, 'utf8'))) {
+  for (const r of JSON.parse(readFileSync(`${OUT}/${name}_raw.json`, 'utf8'))) {
     const why = ign.find(g => (!g.check || r.check.startsWith(g.check)) && (!g.key || r.key.includes(g.key)) && r.from >= (g.from ?? -1) && r.to <= (g.to ?? 1e9));
     if (!why) keep.push(r);
   }
-  writeFileSync(`${OUT}/audit.json`, JSON.stringify(keep, null, 1));
-  console.log(`\n${keep.length} runs left after audit.ignore → ${OUT}/audit.json`);
+  writeFileSync(`${OUT}/${name}.json`, JSON.stringify(keep, null, 1));
+  console.log(`\n${keep.length} runs left after audit.ignore → ${OUT}/${name}.json`);
   for (const r of keep) console.log(`  shot ${r.shot}  ${r.from.toFixed(2)}–${r.to.toFixed(2)}  ${r.check}  ${r.key}`);
 
 } else if (cmd === 'frames') {

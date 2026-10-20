@@ -6,7 +6,8 @@
 <title>Phone render</title>
 <!-- phone_render.html: the driver for phone_render.mjs. It loads the film page in a hidden frame, then loops: ask the
      server for a frame number, render it with renderAt(), upload the JPEG (scaled to job.w if the server asks; in audit mode
-     window.auditAt(t) goes up first). Keep this tab in front and the screen on. -->
+     window.auditAt(t) goes up first). With ?scale=k (phone_render.mjs --lowres) the film page draws k times smaller, so
+     frames come out at the right width and need no shrinking. Keep this tab in front and the screen on. -->
 <style>
   :root { --bg: #1b1820; --fg: #eee; --dim: #9a93a6; --accent: #DC7FA0; }
   html, body { margin: 0; background: var(--bg); color: var(--fg); font: 15px system-ui, sans-serif; }
@@ -31,10 +32,10 @@
   <div id="log"></div>
 </main>
 <script>
-const $ = s => document.querySelector(s), id = new URLSearchParams(location.search).get('id');
+const $ = s => document.querySelector(s), Q = new URLSearchParams(location.search), id = Q.get('id'), scale = +Q.get('scale') || 0;
 const log = m => { $('#log').textContent = `${new Date().toLocaleTimeString()}  ${m}\n` + $('#log').textContent.slice(0, 4000); };
-$('#title').textContent = `Phone render: ${id}`;
-const frame = document.createElement('iframe'); frame.src = `/pages/${id}.html?render`; document.body.appendChild(frame);
+$('#title').textContent = `Phone render: ${id}${scale ? ` (low-res, ${Math.round(1920 * scale)} px)` : ''}`;
+const frame = document.createElement('iframe'); frame.src = `/pages/${id}.html?render${scale ? `&scale=${scale}` : ''}`; document.body.appendChild(frame);
 let running = false, wake = null;
 async function film() {                                        // wait until the film page says it's ready
   for (;;) { const w = frame.contentWindow; if (w && w.ready === true && w.renderAt) return w; await new Promise(r => setTimeout(r, 300)); }
@@ -56,9 +57,10 @@ $('#go').onclick = async () => {
     if (job.wait) { $('#stat').textContent = 'waiting for the last frames (held by another browser, or a failed upload)…'; await new Promise(r => setTimeout(r, 5000)); continue; }
     if (job.done) { $('#stat').textContent = 'all frames done ✓'; running = false; $('#go').textContent = 'Start'; break; }
     if (total === null) total = job.left;
+    if ((job.scale || 0) !== scale) { log('the server changed resolution: reloading'); location.replace('/'); return; }
     try {
       if (job.audit) { const ar = await w.auditAt(job.t), q = await fetch(`/audit/${job.i}`, { method: 'POST', body: JSON.stringify(ar) }); if (!q.ok) throw new Error(await q.text()); }
-      const url = await w.renderAt(job.t, 'image/jpeg', .94), blob = job.w ? await shrink(url, job.w) : await (await fetch(url)).blob();
+      const url = await w.renderAt(job.t, 'image/jpeg', .94), blob = job.w && !scale ? await shrink(url, job.w) : await (await fetch(url)).blob();
       const r = await fetch(`/frame/${job.i}`, { method: 'POST', body: blob });
       if (!r.ok) throw new Error(await r.text());
       n++; const ms = (performance.now() - t0) / n;

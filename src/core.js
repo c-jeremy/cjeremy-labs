@@ -1,6 +1,11 @@
 // core.js: constants, helpers, paper, paint wrapper, compositing and render hooks.
 // Length and rhythm come from PROJECT in config.js.
 const W = 1920, H = 1080;
+// Low-res drawing, for fast previews: ?scale=k on the film page (0 < k < 1) draws onto a canvas k times the size, with
+// the base matrix scaled by k, so scenes still work in W × H units (brush weights shrink with everything else) and
+// frames come out k × 1920 wide. Without it (RES = 1) nothing changes.
+const RES = (() => { const k = +new URLSearchParams(location.search).get('scale'); return k > 0 && k < 1 ? k : 1; })();
+function baseMatrix() { if (RES !== 1) scale(RES); translate(-W / 2, -H / 2); }   // screen space: (0, 0) top-left, W × H units
 const BPM = PROJECT.bpm, BEAT = 60 / BPM, OFF = PROJECT.offset || 0, BOIL = 12, DUR = PROJECT.duration;
 const TAU = Math.PI * 2;
 const PAL = {
@@ -97,7 +102,7 @@ function toScreen(x, y, cam = CAM) {
 }
 
 // ---------- full-frame effects (call outside a camera, in screen space) ----------
-function flash(k, col = '#FFFDF6') { if (k > .01) paint(rectPts(-60, -60, W + 120, H + 120), { wash: col, washOp: 255 * clamp(k), ink: null }); }
+function flash(k, col = '#FFFDF6') { if (AUDIT) AUDIT.cover = Math.max(AUDIT.cover, clamp(k)); if (k > .01) paint(rectPts(-60, -60, W + 120, H + 120), { wash: col, washOp: 255 * clamp(k), ink: null }); }
 // Light: glow(x, y, r, col, a) ADDS a soft halo of light for anything that shines (stars, lamps, fireflies, magic).
 // p5.brush mixes every colour like pigment, so yellow painted over blue turns green and light can't be painted; this
 // is the one non-paint mark in the kit. It lands on what's painted so far, under anything painted after it, follows
@@ -124,7 +129,7 @@ function irisShape(pts, col = PAL.ink, far = 4000) {
     paint([a2, b2, out(b2), out(a2)], { wash: col, washOp: 255, ink: null });
   }
 }
-function iris(cx, cy, r, col = PAL.ink) { if (r < 4) paint(rectPts(-60, -60, W + 120, H + 120), { wash: col, ink: null }); else irisShape(ellPts(cx, cy, r, r, 40), col); }
+function iris(cx, cy, r, col = PAL.ink) { if (AUDIT) AUDIT.cover = Math.max(AUDIT.cover, r < 4 ? 1 : clamp(1 - Math.PI * r * r / (W * H))); if (r < 4) paint(rectPts(-60, -60, W + 120, H + 120), { wash: col, ink: null }); else irisShape(ellPts(cx, cy, r, r, 40), col); }
 
 let T = 0, paperG = null, grainC = null, letG = null, glowTex = null, outC = null, outX = null;
 let LETTERS = [];
@@ -174,32 +179,41 @@ function ribbon(P, w0, w1 = w0) {
 // ---------- paint wrapper ----------
 // One call = one painted shape: optional flat wash, optional watercolor fill, optional hatch, optional ink outline.
 // p5.brush 2.2.3 loses strokes drawn far from the origin under a zoomed camera (from zoom ~2, an outline or a line
-// leaves only a dot at its first vertex), so every shape and line is drawn around its own centre.
+// leaves only a dot at its first vertex), so every shape and line is drawn around its own centre. It also drops strokes
+// whose coordinates reach past the canvas's size in pixels, so at low res (RES < 1) the points go in as pixels, the
+// matrix undoes that, and paintAt and inkLine scale their weights (and hatch spacing) by RES to match.
 function centred(pts, draw) {
   if (!pts.length) return;
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const [x, y] of pts) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  push(); translate(cx, cy); draw(pts.map(([x, y]) => [x - cx, y - cy])); pop();
+  push(); translate(cx, cy);
+  if (RES !== 1) { scale(1 / RES); draw(pts.map(([x, y]) => [(x - cx) * RES, (y - cy) * RES])); } else draw(pts.map(([x, y]) => [x - cx, y - cy]));
+  pop();
 }
 function paint(pts, o = {}) { centred(pts, (P) => paintAt(P, o)); }
 function paintAt(pts, o) {
   if (o.wash || o.fill || o.hatch) {
-    if (o.wash) brush.wash(o.wash, o.washOp ?? 255); else brush.noWash();
-    if (o.fill) { brush.fill(o.fill, o.fillOp ?? 170); brush.fillBleed(o.bleed ?? .1); brush.fillTexture(o.tex ?? .4, o.border ?? .35); } else brush.noFill();
-    if (o.hatch) { brush.hatch(o.hatch.d, o.hatch.a, o.hatch.o || { rand: .15 }); brush.hatchStyle(o.hatch.b || 'HB', o.hatch.c || PAL.ink, o.hatch.w || 1); } else brush.noHatch();
+    const shape = () => { if (o.curv) { brush.beginShape(o.curv); for (const p of pts) brush.vertex(p[0], p[1]); brush.endShape(true); } else brush.polygon(pts); };
+    if (o.fill && RES !== 1) {   // low-res previews skip the watercolor fill (the slow part): a flat wash of its colour instead
+      if (o.wash) { brush.noFill(); brush.noHatch(); brush.noStroke(); brush.wash(o.wash, o.washOp ?? 255); shape(); }
+      brush.wash(o.fill, o.fillOp ?? 170); brush.noFill();
+    } else {
+      if (o.wash) brush.wash(o.wash, o.washOp ?? 255); else brush.noWash();
+      if (o.fill) { brush.fill(o.fill, o.fillOp ?? 170); brush.fillBleed(o.bleed ?? .1); brush.fillTexture(o.tex ?? .4, o.border ?? .35); } else brush.noFill();
+    }
+    if (o.hatch) { brush.hatch(o.hatch.d * RES, o.hatch.a, o.hatch.o || { rand: .15 }); brush.hatchStyle(o.hatch.b || 'HB', o.hatch.c || PAL.ink, (o.hatch.w || 1) * RES); } else brush.noHatch();
     brush.noStroke();
-    if (o.curv) { brush.beginShape(o.curv); for (const p of pts) brush.vertex(p[0], p[1]); brush.endShape(true); }
-    else brush.polygon(pts);
+    shape();
   }
   // the outline is one continuous tapered stroke, not a stroke per side
   if (o.ink !== null) {
-    brush.noWash(); brush.noFill(); brush.noHatch(); brush.set(o.br || 'ink', o.ink || PAL.ink, o.sw ?? 1);
+    brush.noWash(); brush.noFill(); brush.noHatch(); brush.set(o.br || 'ink', o.ink || PAL.ink, (o.sw ?? 1) * RES);
     brush.beginShape(o.curv || 0); for (const p of pts) brush.vertex(p[0], p[1]); brush.endShape(true);
   }
 }
 function inkLine(pts, sw = 1, col = PAL.ink, br = 'ink', curv = .5) {
-  centred(pts, (P) => { brush.noFill(); brush.noWash(); brush.noHatch(); brush.set(br, col, sw); brush.spline(P, curv); });
+  centred(pts, (P) => { brush.noFill(); brush.noWash(); brush.noHatch(); brush.set(br, col, sw * RES); brush.spline(P, curv); });
 }
 
 // ---------- lettering (drawn on the 2D compositor, under the paper grain) ----------
@@ -229,7 +243,7 @@ function drawLetters(c) {
 // p5.brush defers washes and strokes into a mask layer; a (tiny, off-screen) watercolor fill forces it to composite
 // now, so everything painted before this call really lands under whatever p5 draws next (letters, glow).
 function flushBrush() {
-  push(); resetMatrix(); translate(-W / 2, -H / 2);
+  push(); resetMatrix(); baseMatrix();
   brush.noStroke(); brush.noHatch(); brush.noWash(); brush.fill('#000000', 1); brush.fillBleed(0); brush.fillTexture(0, 0);
   brush.polygon([[-50, -50], [-40, -50], [-40, -40]]); brush.noFill(); pop();
 }
@@ -240,7 +254,7 @@ function flushLetters() {
   letG.clear(); drawLetters(letG.drawingContext); LETTERS = [];
   flushBrush();
   // Letters are already in screen space, so composite them with the base transform even inside camBegin().
-  push(); resetMatrix(); translate(-W / 2, -H / 2); image(letG, 0, 0); pop();
+  push(); resetMatrix(); baseMatrix(); image(letG, 0, 0); pop();
 }
 
 // ---------- paper ----------
@@ -273,10 +287,11 @@ function defineBrushes() {
 
 // ---------- frame ----------
 async function setup() {
-  createCanvas(W, H, WEBGL); pixelDensity(1); noLoop();
+  createCanvas(Math.round(W * RES), Math.round(H * RES), WEBGL); pixelDensity(1); noLoop();
   brush.scaleBrushes(5); defineBrushes();
   paperG = makePaper(); grainC = makeGrain(); glowTex = makeGlowTex(); letG = createGraphics(W, H); letG.pixelDensity(1);
   outC = document.getElementById('out'); outX = outC.getContext('2d');
+  if (RES !== 1) { outC.width = width; outC.height = height; }
   await document.fonts.load('100px "Permanent Marker"');
   window.ready = true;
   if (!location.search.includes('render')) devUI();
@@ -284,7 +299,7 @@ async function setup() {
 function draw() {
   if (!window.ready) return;
   LETTERS = []; CAM = LAST_CAM = null;
-  push(); translate(-W / 2, -H / 2);
+  push(); baseMatrix();
   BOILN = Math.floor(T * BOIL); CLAWD_N = 0; boilSeed('frame'); noiseSeed(77);
   if (AUDIT) { push(); noStroke(); fill(255, 0, 255); rect(0, 0, W, H); pop(); }   // audit: bare paper shows as magenta
   else image(paperG, 0, 0);
@@ -294,9 +309,9 @@ function draw() {
 function composite(t) {
   const c = outX;
   c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-  c.drawImage(drawingContext.canvas, 0, 0, W, H);
-  drawLetters(c);
-  c.globalCompositeOperation = 'multiply'; c.drawImage(grainC, 0, 0);
+  c.drawImage(drawingContext.canvas, 0, 0, outC.width, outC.height);
+  if (RES !== 1) { c.save(); c.scale(RES, RES); drawLetters(c); c.restore(); } else drawLetters(c);
+  c.globalCompositeOperation = 'multiply'; if (RES !== 1) c.drawImage(grainC, 0, 0, outC.width, outC.height); else c.drawImage(grainC, 0, 0);
   c.globalCompositeOperation = 'source-over';
 }
 window.renderAt = async (t, type = 'image/png', q = .92) => { T = t; await redraw(); composite(t); return outC.toDataURL(type, q); };
@@ -312,7 +327,7 @@ window.renderSheet = async (times, cols = 3, w = 640, crop = null, at = null) =>
     const t0 = performance.now(); T = times[i]; await redraw(); composite(times[i]); ms.push(Math.round(performance.now() - t0));
     const x = (i % cols) * w, y = Math.floor(i / cols) * h;
     const [cx, cy] = at ? toScreen(at[0], at[1], LAST_CAM).map((v, j) => v - (j ? ch : cw) / 2) : crop || [0, 0];
-    c.drawImage(outC, cx, cy, cw, ch, x, y, w, h); c.fillStyle = 'rgba(0,0,0,.65)'; c.fillRect(x, y, 84, 24); c.fillStyle = '#fff'; c.font = '15px sans-serif'; c.fillText(times[i].toFixed(2) + 's', x + 6, y + 17);
+    c.drawImage(outC, cx * RES, cy * RES, cw * RES, ch * RES, x, y, w, h); c.fillStyle = 'rgba(0,0,0,.65)'; c.fillRect(x, y, 84, 24); c.fillStyle = '#fff'; c.font = '15px sans-serif'; c.fillText(times[i].toFixed(2) + 's', x + 6, y + 17);
   }
   return { url: sc.toDataURL('image/jpeg', .9), ms };
 };
@@ -320,19 +335,22 @@ window.renderSheet = async (times, cols = 3, w = 640, crop = null, at = null) =>
 // While AUDIT is set, the paper is painted magenta (so bare paper can be counted) and characters and big props report
 // their screen boxes through auditBox(kind, key, x0, y0, x1, y1) (world coords, mapped through the active camera;
 // transforms pushed by the scene itself are not followed). pip() and clawd() report themselves; call auditBox for any
-// prop you want overlap-checked against the characters.
+// prop you want overlap-checked against the characters, and auditBox(..., true) for one that should only be followed
+// across cuts (the seam check), not overlap-checked.
 let AUDIT = null;
-function auditBox(kind, key, x0, y0, x1, y1) {
+function auditBox(kind, key, x0, y0, x1, y1, seamOnly = false) {
   if (!AUDIT) return;
   const P = [toScreen(x0, y0), toScreen(x1, y0), toScreen(x0, y1), toScreen(x1, y1)], xs = P.map(p => p[0]), ys = P.map(p => p[1]);
-  AUDIT.boxes.push({ kind, key: String(key), x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) });
+  AUDIT.boxes.push({ kind, key: String(key), x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys), ...(seamOnly && { seam: 1 }) });
 }
+// auditAt(t) → {t, shot, paper, cover, boxes}: cover (0..1) is how much of the frame a transition hides; flash(), iris()
+// and brushWipe() report it, so a cut behind one is known to be invisible
 window.auditAt = async (t) => {
-  AUDIT = { boxes: [] }; T = t; await redraw(); composite(t);
-  const d = outX.getImageData(0, 0, W, H).data; let mag = 0, n = 0;
+  AUDIT = { boxes: [], cover: 0 }; T = t; await redraw(); composite(t);
+  const d = outX.getImageData(0, 0, outC.width, outC.height).data; let mag = 0, n = 0;
   for (let i = 0; i < d.length; i += 4 * 7) { n++; if (d[i] > 190 && d[i + 1] < 70 && d[i + 2] > 190) mag++; }
   let shot = -1; if (typeof SHOTS !== 'undefined') for (let i = 0; i < SHOTS.length; i++) if (t >= SHOTS[i][0]) shot = i;
-  const out = { t, shot, paper: mag / n, boxes: AUDIT.boxes }; AUDIT = null; return out;
+  const out = { t, shot, paper: mag / n, cover: AUDIT.cover, boxes: AUDIT.boxes }; AUDIT = null; return out;
 };
 window.gpuInfo = () => { const gl = drawingContext, e = gl.getExtension('WEBGL_debug_renderer_info'); return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); };
 
