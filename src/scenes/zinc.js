@@ -27,6 +27,11 @@
   const popK = k => k <= 0 ? 0 : backOut(clamp(k));                 // a pop-in scale; callers skip drawing while it is < .05
   const rotPts = (P, x, y, a, s = 1) => P.map(([px, py]) => [x + (px * Math.cos(a) - py * Math.sin(a)) * s, y + (px * Math.sin(a) + py * Math.cos(a)) * s]);
   const rotEll = (x, y, rx, ry, n, rot) => { const c = Math.cos(rot), s = Math.sin(rot); return ellPts(0, 0, rx, ry, n).map(([a, b]) => [x + a * c - b * s, y + a * s + b * c]); };
+  // the arm {to} that puts Pip's hand on world point P: pip.js's arm maths (flip, rot, squash, dx/dy) run backwards
+  function reachTo(x, y, u, o, P) {
+    const dir = o.flip ? -1 : 1, sq = o.sq || 0, r = o.rot || 0, vx = P[0] - (x + (o.dx || 0) * u), vy = P[1] - (y + (o.dy || 0) * u);
+    return { to: [(vx * Math.cos(r) + vy * Math.sin(r)) / (dir * (1 + sq)), (-vx * Math.sin(r) + vy * Math.cos(r)) / (1 - sq)] };
+  }
 
   // ---------- small effects ----------
   function streaks(k, key, vertical = false, col = PAL.cream) {     // speed lines for a whip pan or a rewind (from selenium.js)
@@ -73,6 +78,7 @@
   // Zn²⁺: a silver bead with a white crescent and two + discs. It never changes colour in this film.
   function zn(x, y, r, key, o = {}) {
     if (r < 2) return;
+    if (r >= 10) auditBox('zn', key, x - r, y - r, x + r, y + r, true);   // followed across cuts (the seam check)
     if (o.glow) glow(x, y, r * 3.4, '#BFEFFF', o.glow);
     boilSeed('zn' + key);
     paint(ellPts(x, y, r, r, 18), r >= 26 ? { wash: Z.zn, fill: Z.znDk, fillOp: 55, tex: .4, ink: PAL.ink, sw: clamp(r / 22, .6, 1.4) } : { wash: Z.zn, ink: PAL.ink, sw: clamp(r / 22, .5, 1.3) });
@@ -85,7 +91,8 @@
     boilSeed('shr' + key); inkLine(ellPts(x, y, R, R, 40).concat([ellPts(x, y, R, R, 40)[0]]), .9, mixCol(Z.elDk, PAL.cream, .4), 'inkfine', .3);
     for (let i = 0; i < n; i++) {
       const a = spin + i / n * TAU; let px = x + Math.cos(a) * R, py = y + Math.sin(a) * R;
-      if (o.tug && i === 0) { px += Math.cos(o.tugA) * o.tug; py += Math.sin(o.tugA) * o.tug; }
+      if (o.tug && i === (o.tugI ?? 0)) { px += Math.cos(o.tugA) * o.tug; py += Math.sin(o.tugA) * o.tug; }   // tugI: the electron on the rope
+      if (o.dent) { const d = Math.abs(Math.atan2(Math.sin(a - o.dentA), Math.cos(a - o.dentA))), k = o.dent * Math.max(0, Math.cos(Math.min(d * 2.4, Math.PI / 2))); px -= Math.cos(a) * k; py -= Math.sin(a) * k; }   // a hit bends the ring in
       if (o.skip === i) continue;
       el(px, py, o.er ?? 9, key + i);
     }
@@ -93,6 +100,7 @@
   function cu(x, y, r, s2, key, glowK = 0, plus = 1) {              // Cu⁺ orange (one +) → Cu²⁺ blue (two +), from copper.js
     if (r < 2) return;
     const k = clamp(s2);
+    if (r >= 10) auditBox('cu', key, x - r, y - r, x + r, y + r, true);
     if (glowK > 0) glow(x, y, r * 3.2, k > .5 ? '#7FC4FF' : '#FFB070', glowK);
     boilSeed('cu' + key);
     paint(ellPts(x, y, r, r, 18), r >= 28 ? { wash: mixCol(Z.cu, Z.cu2, k), fill: mixCol(Z.cuDk, Z.cu2Dk, k), fillOp: 55, tex: .4, ink: PAL.ink, sw: clamp(r / 22, .6, 1.4) } : { wash: mixCol(Z.cu, Z.cu2, k), ink: PAL.ink, sw: clamp(r / 22, .6, 1.4) });
@@ -111,6 +119,7 @@
   }
   function ion(x, y, r, col, dk, n, key, glyph = '+') {             // a generic metal ion bead with n charge discs (Fe, Mg, Mn)
     if (r < 2) return; boilSeed('io' + key);
+    if (r >= 10) auditBox('ion', key, x - r, y - r, x + r, y + r, true);
     paint(ellPts(x, y, r, r, 16), { wash: col, ink: PAL.ink, sw: clamp(r / 22, .6, 1.3) });
     paint(ellPts(x - r * .35, y - r * .38, r * .25, r * .16, 10, 0, -.6), { wash: mixCol(col, PAL.cream, .55), ink: null });
     marks(glyph, n, x, y, r, 1, key + 'c');
@@ -204,6 +213,7 @@
   // ---------- the camera (Pip's running gag): a press camera with a flash dish; (x, y) = where the hand holds it ----------
   function camera(x, y, s, rot, key, o = {}) {
     boilSeed('cam' + key);
+    auditBox('camera', key, x - 40 * s, y - 40 * s, x + 40 * s, y + 30 * s, true);
     push(); translate(x, y); rotate(rot); scale(s);
     paint(rrPts(-34, -26, 68, 48, 8), { wash: Z.cam, fill: Z.camDk, fillOp: 50, ink: PAL.ink, sw: 1.1 });
     paint(rrPts(-22, -36, 22, 12, 3), { wash: Z.camDk, ink: PAL.ink, sw: .8 });
@@ -342,11 +352,11 @@
   function shotA2(t, lt, dur) {
     K.setT(t);
     let c;                                                          // three framings: the bench (L3), inside the egg (L4), the shell (L5)
-    if (t < L(4, .5)) c = kf(t, [[L(3, -1), [1060, 520, 1.08]], [L(3, 6.0), [1040, 520, 1.0]], [L(4, -.4), [1100, 470, 1.6]]], ease);
-    else if (t < L(5, .6)) c = kf(t, [[L(4, .5), [1000, 560, 1.32]], [L(4, 6.0), [1000, 560, 1.32]], [L(4, 7.2), [1080, 500, 1.2]]], ease);
-    else c = kf(t, [[L(5, .6), [960, 540, 1.45]], [L(5, 5.0), [960, 540, 1.45]], [L(5, 6.8), [1150, 540, .95]]], ease);
+    if (t < L(4, -.1)) c = kf(t, [[L(3, -1), [1060, 520, 1.08]], [L(3, 6.0), [1040, 520, 1.0]], [L(4, -.4), [1100, 470, 1.6]]], ease);
+    else if (t < L(5, 0)) c = kf(t, [[L(4, -.1), [1000, 560, 1.32]], [L(4, 6.0), [1000, 560, 1.32]], [L(4, 7.2), [1080, 500, 1.2]]], ease);
+    else c = kf(t, [[L(5, 0), [960, 540, 1.45]], [L(5, 5.0), [960, 540, 1.45]], [L(5, 6.8), [1150, 540, .95]]], ease);
     camBegin(c[0] + 6 * wob(t, .05), c[1] + 4 * wob(t, .04), c[2]);
-    if (t < L(4, .5)) {                                            // L3: the bench at night; the mouse looks at its own egg's fireworks
+    if (t < L(4, -.1)) {                                           // L3: the bench at night; the mouse looks at its own egg's fireworks
       darkField(t, 'a2b', '#22274F');
       paint(rectPts(-300, 840, W + 600, 600), { wash: Z.bench, fill: Z.benchDk, fillOp: 60, tex: .4, ink: PAL.ink, sw: 1.2 });
       scope(1240, 850, 1.3, 'a2sc');
@@ -360,7 +370,7 @@
         egg(sw.x, sw.y, er, t, 'a2ie', { corona: human > .5 });
         const ph = (t - L(3)) / 2.4; burst(sw.x, sw.y, er, frac(ph), 30, 'a2ib' + Math.floor(ph), { reach: .8 });
       }, '#12153A');
-    } else if (t < L(5, .6)) {                                     // L4: inside the egg, the brake on meiosis II
+    } else if (t < L(5, 0)) {                                       // L4: inside the egg, the brake on meiosis II
       K.wash(Z.egg, t, { key: 'a2i', blob: '#F7E3EB', n: 4 });
       paint(rectPts(-400, -400, W + 800, 640), { wash: Z.night, ink: null });                       // beyond the egg, at the top
       boilSeed('a2zo'); paint(ellPts(1060, 1700, 1760, 1625, 60), { wash: Z.zona, ink: null });
@@ -398,6 +408,8 @@
       const px = 740, py = 790, u = 34, kn = [L(5, 3.75), L(5, 4.1)];
       let o = K.act(t, [[L(5, -1), 'calm', { lookX: .8 }], [L(5, 1.4), 'wow', { lookX: .8, lookY: -.2 }], [L(5, 3.0), 'calm', { lookX: .6, lookY: -.6 }], [L(5, 4.45), 'ouch', { take: 1 }], [L(5, 5.8), 'happy', { lookX: .7, lookY: -.3 }]]);
       if (t > L(5, 3.5) && t < L(5, 4.45)) { const k = Math.max(...kn.map(k0 => pulseK(t, k0 - .14, .28))); o = { ...o, armF: [lerp(.15, .55, k), lerp(2.3, 3.3, k)] }; }
+      const sore = Math.max(.35 * ease(seg(t, kn[0], kn[0] + .2)), ease(seg(t, kn[1], kn[1] + .3)));   // the shell is hard now: the knocking hand goes red and swells
+      if (sore > 0) o = { ...o, soreF: sore * (.9 + .1 * Math.sin(t * 16)) };
       const sw = K.swim(px, py, u, t, { ...o, talk: false }, 'a2pip');
       for (const k0 of kn) if (t > k0 && t < k0 + .3) K.burst(px + 3.5 * u, sw - 3.6 * u, 30, seg(t, k0, k0 + .3), PAL.cream, 'a2kn' + k0);
     }
@@ -415,6 +427,7 @@
   function protein(x, y, s, key, o = {}) {
     if (s < .05) return;
     const col = o.col || pastel(key.length + Math.floor(x / 7)), dk = mixCol(col, PAL.ink, .22), lean = o.lean || 0;
+    if (s >= .3) auditBox('protein', key, x - 48 * s, y - 36 * s, x + 48 * s, y + 36 * s, true);
     boilSeed('pr' + key);
     push(); translate(x, y); rotate(lean); scale(s);
     if (o.arms) for (const sd of [-1, 1]) { const a = o.arms, hnd = [sd * (36 + 14 * a), -26 - 20 * a]; inkLine([[sd * 30, -16], hnd], 6, dk, 'ink', .3); paint(ellPts(hnd[0], hnd[1], 7, 7, 8), { wash: col, ink: PAL.ink, sw: .8 }); }
@@ -429,6 +442,7 @@
   // a paper-doll body (a pale silhouette with an ink outline, no face); (x, y) = between the feet, h = height
   function body(x, y, h, key, o = {}) {
     boilSeed('bd' + key); const s = h / 600;
+    auditBox('body', key, x - 150 * s, y - 600 * s, x + 150 * s, y, true);
     const P = [[0, -600], [40, -590], [55, -545], [45, -505], [30, -490], [100, -470], [130, -420], [150, -260], [128, -255], [110, -400], [100, -330],
       [95, -220], [75, 0], [25, 0], [15, -220], [0, -230]];
     const full = P.concat(P.slice(1, -1).reverse().map(([a, b]) => [-a, b])).map(([a, b]) => [x + a * s, y + b * s * (1 + (o.breath || 0) * (b < -250 && b > -500 ? .03 : 0))]);
@@ -444,10 +458,11 @@
     const mx = (x0 + x1) / 2; paint(rectPts(mx - 4, y - 70, 8, 72), { wash: '#E9E3D6', ink: PAL.ink, sw: .8 });
     for (let k = 0; k < 4; k++) inkLine([[mx - 4, y - 62 + k * 16], [mx + 4, y - 62 + k * 16]], .6, PAL.ink, 'inkfine', 0);
   }
-  function ball(x, y, r, key, col = '#FBF7EE') { boilSeed('bl' + key); paint(ellPts(x, y, r, r, 16), { wash: col, ink: PAL.ink, sw: clamp(r / 22, .6, 1.1) }); paint(ellPts(x - r * .3, y - r * .35, r * .28, r * .18, 8, 0, -.5), { wash: PAL.cream, ink: null }); }
+  function ball(x, y, r, key, col = '#FBF7EE') { auditBox('ball', key, x - r, y - r, x + r, y + r, true); boilSeed('bl' + key); paint(ellPts(x, y, r, r, 16), { wash: col, ink: PAL.ink, sw: clamp(r / 22, .6, 1.1) }); paint(ellPts(x - r * .3, y - r * .35, r * .28, r * .18, 8, 0, -.5), { wash: PAL.cream, ink: null }); }
   function paddle(x, y, s, ang, key) {                            // a ping-pong bat; (x, y) = the grip
     boilSeed('pd' + key);
     const c = [x + Math.cos(ang) * 46 * s, y + Math.sin(ang) * 46 * s];
+    auditBox('paddle', key, c[0] - 30 * s, c[1] - 30 * s, c[0] + 30 * s, c[1] + 30 * s, true);
     paint(ribbon([[x, y], [x + Math.cos(ang) * 22 * s, y + Math.sin(ang) * 22 * s]], 10 * s, 9 * s), { wash: '#C58A4A', ink: PAL.ink, sw: .9 });
     paint(rotEll(c[0], c[1], 30 * s, 26 * s, 16, ang), { wash: '#C8323C', ink: PAL.ink, sw: 1 });
     return c;
@@ -455,6 +470,7 @@
   // a balance: a post, a beam tilted by tilt, two pans; drawL/drawR draw what sits on each pan (given the pan's top)
   function balance(x, y, s, tilt, key, drawL, drawR) {
     boilSeed('bal' + key);
+    auditBox('balance', key, x - 250 * s, y - 230 * s, x + 250 * s, y, true);
     paint(rectPts(x - 8 * s, y - 220 * s, 16 * s, 220 * s), { wash: '#B9A27A', ink: PAL.ink, sw: 1 });
     paint(ellPts(x, y, 70 * s, 14 * s, 16), { wash: '#9C8560', ink: PAL.ink, sw: 1 });
     const dx = Math.cos(tilt) * 190 * s, dy = Math.sin(tilt) * 190 * s, top = [x, y - 220 * s];
@@ -514,15 +530,18 @@
       const bd = body(BD[0], BD[1] - 20, bh, 'b1b', { breath: Math.sin(t * 1.6) });
       // the body's zinc: specks all over it, which fly together into one silver ball on the right pan (L6 +3.0 – +5.0)
       const gather = ease(seg(t, L(6, 3.0), L(6, 5.0))), spread = ease(seg(t, L(7, .3), L(7, 1.6)));
-      const BS = 1.1, panR = [1270 + 190 * BS, 880 - 220 * BS + 80 * BS];
+      // the balance reads the weights: level while both pans are empty, down on the left when the ball lands, level again
+      // when the zinc (the same 2–3 g) lands on the right, and down on the left again when the zinc spreads back out (L7)
+      const BS = 1.1, land = L(6, 1.4), lvl = ease(seg(t, L(6, 4.85), L(6, 5.5))) * (1 - spread);
+      const tilt = (-.12 * easeOut(seg(t, land - .05, land + .25)) - .03 * spring(t, land + .25, 4, 10)) * (1 - lvl) + .03 * spring(t, L(6, 5.5), 4, 10);
+      const panR = [1270 + Math.cos(tilt) * 190 * BS, 880 - 220 * BS + Math.sin(tilt) * 190 * BS + 80 * BS];
       for (let i = 0; i < 40; i++) {
         const home = [BD[0] + (hash(i + 3) - .5) * 160, BD[1] - 60 - hash(i + 5) * 470], tgt = [panR[0], panR[1] - 26];
         const g2 = gather * (1 - spread), p = [lerp(home[0], tgt[0], g2), lerp(home[1], tgt[1], g2) - 160 * Math.sin(g2 * Math.PI)];
         if (gather < .98 || spread > .02) { boilSeed('b1sp' + i); paint(ellPts(p[0], p[1], 6, 6, 8), { wash: Z.zn, ink: PAL.ink, sw: .5 }); }
       }
-      const lvl = ease(seg(t, L(6, 4.8), L(6, 5.8)));
-      balance(1270, 880, BS, lerp(.12, 0, lvl) + .03 * spring(t, L(6, 5.8), 4, 10), 'b1bal',
-        (x, y) => { const k = ease(seg(t, L(6, .2), L(6, 1.4))); const by = k < 1 ? lerp(-200, y - 22, easeIn(k)) - 60 * Math.abs(Math.sin(k * 9)) * (1 - k) : y - 22; if (t > L(6, .2)) ball(x, by - 4, 26, 'b1pp'); },
+      balance(1270, 880, BS, tilt, 'b1bal',
+        (x, y) => { const k = ease(seg(t, L(6, .2), land)); const by = k < 1 ? lerp(-200, y - 22, easeIn(k)) - 60 * Math.abs(Math.sin(k * 9)) * (1 - k) : y - 22; if (t > L(6, .2)) ball(x, by - 4, 26, 'b1pp'); },
         (x, y) => { if (gather > .98 && spread < .02) zn(x, y - 26, 26, 'b1zb', { plus: 0, glow: .3 }); });
       // L7: the body map: muscles and bones glow with zinc; a thousandth goes into the blood
       const mus = ease(seg(t, L(7, .8), L(7, 2.2))), bon = ease(seg(t, L(7, 1.6), L(7, 3.0))), bld = seg(t, L(7, 3.8), L(7, 6.4));
@@ -574,7 +593,7 @@
       } else {                                                       // L10: every protein leans in toward the one zinc; Pip puzzled
         const lean = ease(seg(t, L(10, .8), L(10, 2.4)));
         for (let i = 0; i < 100; i++) { const a = i / 100 * TAU * 3.0, rr = 300 + 210 * (i % 3) + 18 * hash(i), p = [960 + Math.cos(a) * rr * 1.25, 520 + Math.sin(a) * rr * .72];
-          protein(p[0], p[1], .5 * popK(seg(t, L(10, -.2) + i * .006, L(10, .3) + i * .006)), 'gg' + i, { lean: Math.atan2(520 - p[1], 960 - p[0]) + Math.PI / 2 - Math.PI * (1 - lean) * 0, arms: lean }); }
+          protein(p[0], p[1], .5 * popK(seg(t, L(10, .35) + i * .006, L(10, .85) + i * .006)), 'gg' + i, { lean: Math.atan2(520 - p[1], 960 - p[0]) + Math.PI / 2 - Math.PI * (1 - lean) * 0, arms: lean }); }
         zn(960, 520, 46, 'b1zc', { glow: .3 });
         const o = K.act(t, [[L(10), 'calm', { lookX: -.8 }], [L(10, 1.6), 'confused', { lookX: -.8 }], [L(10, 4.8), 'wow', { lookX: -.6, lookY: -.3 }]]);
         K.swim(1720, 820, 30, t, { ...o, flip: true }, 'b1pip10');
@@ -582,6 +601,7 @@
     }
     camEnd();
     if (lt < .45) flash(1 - seg(lt, 0, .45), PAL.cream);
+    for (const sw of [L(8, -.2), L(9, -.2), L(10, .3)]) if (t > sw - .3 && t < sw + .3) flash(on(t, sw - .3, sw + .3, .3, .3), PAL.cream);   // the scene switches
     if (lt > dur - .35) flash(seg(lt, dur - .35, dur), '#DDE3EA');
   }
 
@@ -629,26 +649,38 @@
         cu(cx, cy, 70, ease(seg(t, yank, yank + .4)), 'c1cu');
         if (t < yank + .45) { const a = t * 2.2, p = t < yank ? [cx + Math.cos(a) * 125, cy + Math.sin(a) * 125] : null; if (p) el(p[0], p[1], 14, 'c1ce'); }
       }
-      if (swap > 0) { const zx = lerp(ZC[0] + 900, ZC[0], swap); zn(zx, ZC[1], 70, 'c1zn'); shell(zx, ZC[1], 128, t, 'c1sh', { tug: t > L(12, 2.5) && t < L(12, 5.0) ? 22 + 10 * Math.sin(t * 30) : 0, tugA: Math.PI * .8 }); }
-      // Pip: lasso the copper's electron, yank, catch it, smug. Then haul on zinc's, the rope snaps, knockback; shove one in, bonk
-      const snap = L(12, 5.0), shove = L(12, 6.5), pop = L(12, 7.2);
+      // the rope hooks the shell electron nearest Pip when the haul starts, and that one (it turns with the shell) is pulled
+      const HOOK = L(12, 2.4), hookI = ((Math.round((Math.PI * .84 - .25 * HOOK) / TAU * 18) % 18) + 18) % 18, tugA = 2.55, hookA = tt => .25 * tt + hookI / 18 * TAU;
+      const snap = L(12, 5.0), tugV = t > HOOK && t < snap ? (22 + 10 * Math.sin(t * 30)) * ease(seg(t, HOOK, HOOK + .3)) : t >= snap && t < snap + .8 ? 20 * Math.exp(-6 * (t - snap)) * Math.cos(22 * (t - snap)) : 0;
+      // then the throw: a spare electron, a wind-up, the throw; it bounces off zinc's full shell and back onto Pip's head
+      const grab = L(12, 6.5), rel = L(12, 7.0), hit = L(12, 7.3), bonkAt = L(12, 7.62), aI = Math.PI * .9, IP = [ZC[0] + Math.cos(aI) * 128, ZC[1] + Math.sin(aI) * 128];
+      const dent = t > hit ? 26 * Math.exp(-6 * (t - hit)) * Math.cos(20 * (t - hit)) : 0;
+      if (swap > 0) { const zx = lerp(ZC[0] + 900, ZC[0], swap); zn(zx, ZC[1], 70, 'c1zn'); shell(zx, ZC[1], 128, t, 'c1sh', { tug: tugV, tugA, tugI: hookI, dent, dentA: aI }); }
+      // Pip: lasso the copper's electron, yank, catch it, smug. Then haul on zinc's, the rope snaps, knockback; throw one in, bonk
       let o = K.act(t, [[L(11), 'calm', { lookX: .8 }], [L(11, 3.9), 'scheme', { lookX: .9 }], [yank, 'strain'], [yank + .5, 'smug', { lookX: -.3 }],
-        [L(12, .2), 'wow', { lookX: .9 }], [L(12, 2.5), 'strain', { lookX: .9 }], [snap + 1.8, 'calm', { lookX: .9 }], [shove, 'strain', { lookX: .9 }]]);
+        [L(12, .2), 'wow', { lookX: .9 }], [L(12, 2.5), 'strain', { lookX: .9 }], [grab + .1, 'scheme', { lookX: .9 }], [rel, 'smug', { lookX: .9 }], [hit + .05, 'shock', { take: 1 }]]);
       let px = PX;
       const hold = t > yank && t < L(12, 1.0);
       if (t > L(11, 3.9) && t < yank + .1) { const h = TOON.hand(PX, PY, U, { ...o, armF: [.9, 3] }); const cp = [ZC[0] + Math.cos(t * 2.2) * 125, ZC[1] + Math.sin(t * 2.2) * 125]; o = { ...o, armF: [.9, 3] }; lasso(h, cp, 40, 'c1l1'); }
-      const pulling = t > L(12, 2.4) && t < snap;
+      const pulling = t > HOOK && t < snap;
       if (pulling) o = { ...o, armF: [.5, 3.2], armB: { to: [3.0 * U, -3.4 * U] }, rot: -.2 };
-      o = TOON.mix(o, TOON.knockback(t, snap, { dir: -1, dist: 5, h: 3, spin: 1 }));
-      if (t > snap + TOON.dur('knockback')) o = TOON.mix(o, { dx: lerp(-5, 0, ease(seg(t, snap + 1.9, shove))) });
-      if (t > shove - .1 && t < pop) o = { ...o, armF: [.1, 3.3], armB: [0, 3.1], rot: .12 };
-      o = TOON.mix(o, TOON.bonk(t, pop + .25));
+      o = TOON.mix(o, TOON.knockback(t, snap, { dir: -1, dist: 5, h: 3, spin: 1, dur: .55 }));   // Pip lands 5u back and throws from there
+      const wind = ease(seg(t, grab + .15, rel - .05)), fling = ease(seg(t, rel - .05, rel + .05));
+      if (t > grab + .15 && t < bonkAt) o = { ...o, armF: fling > 0 ? [lerp(2.5, -.1, fling), lerp(2.6, 3.2, fling)] : [lerp(.3, 2.5, wind), 2.6], rot: (o.rot || 0) + lerp(-.15 * wind, .12, fling) };
+      o = TOON.mix(o, TOON.bonk(t, bonkAt));
       TOON.pip(px, PY, U, { ...o, key: 'c1pip' });
-      if (pulling) { const h = TOON.hand(px, PY, U, o), ep = [ZC[0] + Math.cos(t * .25 + Math.PI * .8) * 128 - 22, ZC[1] + Math.sin(t * .25 + Math.PI * .8) * 128]; lasso(h, ep, -6, 'c1l2'); }
+      const hookP = tt => [ZC[0] + Math.cos(hookA(tt)) * 128, ZC[1] + Math.sin(hookA(tt)) * 128];
+      if (pulling) { const h = TOON.hand(px, PY, U, o), e = hookP(t); lasso(h, [e[0] + Math.cos(tugA) * tugV, e[1] + Math.sin(tugA) * tugV], -6, 'c1l2'); }
       if (hold) { const h = TOON.hand(px, PY, U, o); el(h[0] + 10, h[1] - 10, 14, 'c1held'); }
-      if (t > snap && t < snap + .35) K.burst(ZC[0] - 160, ZC[1] + 80, 50, seg(t, snap, snap + .35), PAL.ink, 'c1sn');
-      if (t > shove - .1 && t < pop + .25) { const h = TOON.hand(px, PY, U, { ...o, armF: [.1, 3.3] }); el(h[0] + 12, h[1], 14, 'c1shv'); }
-      if (t > pop && t < pop + .4) { const k = seg(t, pop, pop + .25), hd = TOON.head(px, PY, U, o); el(...arcPt([ZC[0] - 140, ZC[1] + 60], [hd[0], hd[1] - 20], 140, k), 14, 'c1pop'); }
+      if (t > snap && t < snap + .35) K.burst(...hookP(snap), 50, seg(t, snap, snap + .35), PAL.ink, 'c1sn');
+      // the thrown electron, with two fading copies behind it for speed
+      const flight = (P, k, key) => { for (let j = 2; j >= 0; j--) el(...P(Math.max(0, k - j * .07)), 18 - 4.5 * j, key + j); };
+      if (t > grab && t < rel) { const h = TOON.hand(px, PY, U, o); el(h[0], h[1] - 8, 18 * popK(seg(t, grab, grab + .25)), 'c1thr'); if (t < grab + .3) K.sparkle(h[0], h[1] - 8, 30, seg(t, grab, grab + .3), PAL.cream); }
+      const R0 = TOON.hand(PX, PY, U, { dx: -5, armF: [-.1, 3.2], rot: .12 });
+      if (t >= rel && t < hit) flight(k => arcPt(R0, IP, 110, k), seg(t, rel, hit), 'c1fly');
+      if (t >= hit && t < bonkAt) { const hd = TOON.head(px, PY, U, o); flight(k => arcPt(IP, [hd[0], hd[1] - 14], 150, k), seg(t, hit, bonkAt), 'c1bk'); }
+      if (t > hit && t < hit + .35) K.burst(IP[0], IP[1], 54, seg(t, hit, hit + .35), PAL.cream, 'c1hit');
+      if (t >= bonkAt && t < bonkAt + .7) { const hd = TOON.head(px, PY, U, o), k = seg(t, bonkAt, bonkAt + .7); el(...arcPt([hd[0], hd[1] - 14], [hd[0] - 260, PY + 40], 120, k), 18 * (1 - .4 * k), 'c1off'); }
     } else if (t < L(14, -.3)) {                                   // L13: Fe and Cu turn H₂O₂ into radicals; zinc doesn't; a cell relaxes
       const X = [460, 900, 1340];
       for (let i = 0; i < 3; i++) {
@@ -733,6 +765,7 @@
     }
     camEnd();
     if (lt < .5) flash(1 - seg(lt, 0, .5), '#DDE3EA');
+    for (const ln of [13, 14, 15, 16, 17, 18]) if (t > L(ln, -.6) && t < L(ln, 0)) flash(on(t, L(ln, -.6), L(ln, 0), .3, .3), '#DDE3EA');
     if (lt > dur - .3) brushWipe((lt - (dur - .3)) / .6, ['#B23F3A', '#D9564F']);
   }
 
@@ -754,6 +787,7 @@
   // returns the zinc's point and the pit's mouth.
   function anhydrase(x, y, s, key, o = {}) {
     boilSeed('ca' + key);
+    if (s >= .3) auditBox('anhydrase', key, x - 170 * s, y - 140 * s, x + 170 * s, y + 140 * s, true);
     const P = []; for (let i = 0; i < 30; i++) { const a = i / 30 * TAU, r = 1 + .07 * Math.sin(a * 3 + 1) + .04 * Math.sin(a * 7), pit = Math.exp(-Math.pow((a - 1.5 * Math.PI) / .3, 2)); P.push([x + Math.cos(a) * 170 * s * r, y + Math.sin(a) * 140 * s * r * (1 - .62 * pit)]); }
     paint(P, { wash: o.col || '#F2B8A2', ink: PAL.ink, sw: 1.3 / Math.sqrt(Math.max(1, s)), curv: .35 });
     const zp = [x, y - 30 * s];
@@ -762,13 +796,22 @@
     if (o.zn !== false) zn(zp[0], zp[1], 26 * s, key + 'z', { plus: s > .8 ? 1 : 0 });
     return { zp, mouth: [x, y - 130 * s] };
   }
-  function snail(x, y, s, t, key) {                                 // a snail (dot eyes) with a CO₂ riding on its shell
+  function snail(x, y, s, t, key) {                                 // a snail: a raised head, eyes on two stalks, a CO₂ riding on its shell
     boilSeed('sn' + key);
-    paint(ribbon([[x - 60 * s, y], [x + 50 * s, y], [x + 70 * s, y - 20 * s]], 16 * s, 10 * s), { wash: '#D9C7A0', ink: PAL.ink, sw: .9 });
-    for (const sd of [0, 1]) inkLine([[x + 66 * s, y - 20 * s], [x + (74 + 8 * sd) * s, y - (48 + 4 * sd) * s]], 1.2, PAL.ink, 'inkfine', .3);
-    paint(ellPts(x + 80 * s, y - 52 * s, 3 * s, 3 * s, 6), { wash: PAL.ink, ink: null });
-    paint(ellPts(x - 10 * s, y - 34 * s, 44 * s, 40 * s, 18), { wash: '#C58A4A', ink: PAL.ink, sw: 1 });
-    inkLine(through([[x - 10 * s, y - 34 * s], [x + 10 * s, y - 40 * s], [x + 6 * s, y - 60 * s], [x - 26 * s, y - 56 * s], [x - 38 * s, y - 30 * s]]), 1.2, '#8C5A2A', 'ink', .5);
+    const sw = clamp(s * .9, .6, 1.6), str = .04 * Math.sin(t * 5);   // the foot ripples as it crawls
+    paint(ribbon([[x - 70 * s, y], [x - 10 * s, y - 2 * s], [x + 50 * s * (1 + str), y - 4 * s]], 18 * s, 12 * s), { wash: '#D9C7A0', ink: PAL.ink, sw });
+    const H = [x + 62 * s * (1 + str), y - 22 * s];                  // the head, raised at the front of the foot
+    for (const sd of [0, 1]) {                                      // the eye stalks (the far one first), their roots under the head
+      const tip = [H[0] + (4 + 14 * sd) * s + 3 * s * Math.sin(t * 3 + sd), H[1] - (40 - 4 * sd) * s];
+      const root = [H[0] + (sd ? 8 : -2) * s, H[1] - 10 * s];        // three points: a two-point spline with a curve draws nothing
+      inkLine([root, [lerp(root[0], tip[0], .5) - 4 * s, lerp(root[1], tip[1], .5)], tip], 1.4 * sw, PAL.ink, 'ink', .5);
+      paint(ellPts(tip[0], tip[1], 6 * s, 6 * s, 10), { wash: PAL.cream, ink: PAL.ink, sw: .6 * sw });
+      paint(ellPts(tip[0] + 1.5 * s, tip[1], 3 * s, 3 * s, 8), { wash: PAL.ink, ink: null });
+    }
+    paint(rotEll(H[0], H[1], 24 * s, 18 * s, 14, -.35), { wash: '#D9C7A0', ink: PAL.ink, sw });
+    inkLine([[H[0] + 4 * s, H[1] + 4 * s], [H[0] + 12 * s, H[1] + 7 * s], [H[0] + 19 * s, H[1] + 2 * s]], .9 * sw, PAL.ink, 'inkfine', .5);   // a little smile
+    paint(ellPts(x - 10 * s, y - 34 * s, 44 * s, 40 * s, 18), { wash: '#C58A4A', ink: PAL.ink, sw });
+    inkLine(through([[x - 10 * s, y - 34 * s], [x + 10 * s, y - 40 * s], [x + 6 * s, y - 60 * s], [x - 26 * s, y - 56 * s], [x - 38 * s, y - 30 * s]]), 1.2 * sw, '#8C5A2A', 'ink', .5);
     co2(x - 10 * s, y - 92 * s, .9 * s, key + 'c');
   }
   function lungs(x, y, s, key, k = 1) {                             // two pink lobes with a branching airway
@@ -801,35 +844,39 @@
       mito(300, 1030, 1.4, -.1, 'd1mt');
       for (let i = 0; i < 6; i++) { const k = seg(t, L(19, 3.4) + i * .45, L(19, 6.4) + i * .45); if (k > 0) { const p = [lerp(320 + 40 * i, 520 + 200 * i, easeOut(k)), lerp(990, 560 + 50 * Math.sin(i * 2), easeOut(k))]; co2(p[0], p[1], 1.1, 'd1c' + i, .4 * Math.sin(t + i)); } }
       for (let i = 0; i < 4; i++) { const x = frac(hash(i + 2) + (t - L(19)) * .07) * (W + 400) - 200; rbc(x, 380 + 220 * (i % 2), 70, 'd1r' + i); }
-      if (t > L(20, -.3)) { water(1180, 700, 1.4, 'd1w'); co2(1270, 700, 1.3, 'd1c9');
-        const sk = seg(t, L(20, .6), L(20, 4.2)); snail(lerp(300, 1000, sk), 890, 2.0, t, 'd1sn'); }
+      if (t > L(20, -.3)) { const wk = popK(seg(t, L(20, -.3), L(20, .3))), ck = popK(seg(t, L(20, -.1), L(20, .5)));   // a water and a CO₂ grow in; the snail crawls in from off screen
+        if (wk > .05) water(1180, 700, 1.4 * wk, 'd1w'); if (ck > .05) co2(1270, 700, 1.3 * ck, 'd1c9');
+        const sk = seg(t, L(20, -.3), L(20, 4.2)); snail(lerp(-260, 1000, sk), 890, 2.0, t, 'd1sn'); }
       const o = K.act(t, [[L(19, 3.0), 'calm', { lookX: -.7 }], [L(20, 1.0), 'sleepy', { lookX: -.3, lookY: .5 }]]);
       K.swim(1620, 820, 32, t, { ...o, flip: true }, 'd1pip1');
     } else if (t < L(23, -.5)) {                                   // L20 b – L22: inside a red cell, the enzyme's pit, close
       K.wash('#E6847C', t, { key: 'd1in', blob: '#F0A59E', n: 3 });
       for (let i = 0; i < 6; i++) { boilSeed('d1ca' + i); anhydrase(200 + 300 * i, 160 + 60 * (i % 2), .32, 'd1cs' + i, { zn: false, his: false }); }
-      const pop = popK(seg(t, L(20, 4.6), L(20, 5.4))); if (pop < .05) { camEnd(); return; }
-      const { zp, mouth } = anhydrase(960, 700, 2.5 * pop, 'd1ca');
-      // L21: water on zinc → OH⁻ (its H⁺ pops); CO₂ slides in; thwack: HCO₃⁻, which slips out
-      const t21 = L(21), w1 = seg(t, t21, t21 + .5), hp = seg(t, t21 + 1.3, t21 + 1.9), cin = seg(t, t21 + 2.9, t21 + 3.9), hit = t21 + 4.4, out = seg(t, t21 + 6.4, t21 + 8.4);
-      const t22 = L(22), w2 = seg(t, t22 + .4, t22 + 1.0), shuttle = seg(t, t22 + 2.4, t22 + 4.6), table = ease(seg(t, t22 + 6.3, t22 + 7.0));
-      const site = [zp[0], zp[1] - 80];
-      if (t < t22) {
-        if (t > t21 && t < hit) { if (hp < 1) water(lerp(mouth[0] + 200, site[0], ease(w1)), lerp(mouth[1] - 120, site[1], ease(w1)), 1.8, 'd1w1'); else hydroxide(site[0], site[1], 1.8, 'd1oh1'); }
-        if (hp > 0 && hp < 1) proton(site[0] + 40 + 260 * easeOut(hp), site[1] - 30 - 200 * easeOut(hp), 1.5, 'd1h1');
-        if (cin > 0 && t < hit) co2(lerp(mouth[0] - 300, site[0], ease(cin)), lerp(mouth[1] - 200, site[1] - 50, ease(cin)), 1.8, 'd1c1', .2);
-        if (t > hit - .1 && t < hit + .35) K.burst(site[0], site[1] - 20, 70, seg(t, hit - .1, hit + .35), PAL.ink, 'd1hit');
-        if (t >= hit) { const p = out <= 0 ? [site[0], site[1] - 20] : [lerp(site[0], mouth[0] + 520, easeIn(out)), lerp(site[1] - 20, mouth[1] - 300, easeIn(out))]; bicarb(p[0], p[1], 1.8, 'd1bc1', .3 * out); }
-      } else {
-        // L22: a new water binds; its H⁺ is passed out along a His arm; OH⁻ again; then a ping-pong table across the pit
-        if (shuttle < 1) water(lerp(mouth[0] - 260, site[0], ease(w2)), lerp(mouth[1] - 160, site[1], ease(w2)), 1.8, 'd1w2'); else hydroxide(site[0], site[1], 1.8, 'd1oh2');
-        const arm = [site[0] + 150, site[1] + 40], swing = Math.sin(shuttle * Math.PI);
-        ligand(arm[0] + 80, arm[1] + 80, lerp(arm[0], arm[0] + 140, swing), lerp(arm[1], arm[1] - 160, swing), 'H', 'd1his64');
-        if (shuttle > 0 && shuttle < 1) { const q = [lerp(site[0] + 30, arm[0] + 140, ease(shuttle)), lerp(site[1] - 10, arm[1] - 180, ease(shuttle))]; proton(q[0], q[1], 1.5, 'd1h2'); }
-        if (table > .02) {
-          ppTable(site[0] - 380, site[0] + 380, site[1] + 150 - 40 * (1 - table), 'd1pt');
-          const rally = (t - (t22 + 7.0)) / .9, k = frac(Math.max(0, rally)), dirR = Math.floor(Math.max(0, rally)) % 2;
-          if (rally > 0) { const p = arcPt([site[0] + (dirR ? 300 : -300), site[1] + 90], [site[0] + (dirR ? -300 : 300), site[1] + 90], 140, k); (dirR ? bicarb : co2)(p[0], p[1], 1.0, 'd1rb', 0); }
+      const pop = popK(seg(t, L(20, 4.6), L(20, 5.4)));
+      if (pop >= .05) {
+        const { zp, mouth } = anhydrase(960, 700, 2.5 * pop, 'd1ca');
+        // L21: water on zinc → OH⁻ (its H⁺ pops); CO₂ slides in; thwack: HCO₃⁻, which slips out
+        // every molecule comes in from off screen and the bicarbonate leaves the screen (nothing pops in or parks at an edge)
+        const t21 = L(21), w1 = seg(t, t21, t21 + .9), hp = seg(t, t21 + 1.3, t21 + 1.9), cin = seg(t, t21 + 2.6, t21 + 3.9), hit = t21 + 4.4, out = seg(t, t21 + 6.4, t21 + 8.2);
+        const t22 = L(22), w2 = seg(t, t22, t22 + 1.2), shuttle = seg(t, t22 + 2.4, t22 + 4.6), table = ease(seg(t, t22 + 6.3, t22 + 7.0));
+        const site = [zp[0], zp[1] - 80];
+        if (t < t22) {
+          if (t > t21 && t < hit) { if (hp < 1) water(lerp(1450, site[0], ease(w1)), lerp(-80, site[1], ease(w1)), 1.8, 'd1w1'); else hydroxide(site[0], site[1], 1.8, 'd1oh1'); }
+          if (hp > 0 && hp < 1) proton(site[0] + 40 + 260 * easeOut(hp), site[1] - 30 - 200 * easeOut(hp), 1.5, 'd1h1');
+          if (cin > 0 && t < hit) co2(lerp(420, site[0], ease(cin)), lerp(-80, site[1] - 50, ease(cin)), 1.8, 'd1c1', .2);
+          if (t > hit - .1 && t < hit + .35) K.burst(site[0], site[1] - 20, 70, seg(t, hit - .1, hit + .35), PAL.ink, 'd1hit');
+          if (t >= hit && out < 1) { const p = out <= 0 ? [site[0], site[1] - 20] : [lerp(site[0], 2150, easeIn(out)), lerp(site[1] - 20, -200, easeIn(out))]; bicarb(p[0], p[1], 1.8, 'd1bc1', .3 * out); }
+        } else {
+          // L22: a new water binds; its H⁺ is passed out along a His arm (which reaches up out of the pit); OH⁻ again; then a ping-pong table across the pit
+          if (shuttle < 1) water(lerp(300, site[0], ease(w2)), lerp(-80, site[1], ease(w2)), 1.8, 'd1w2'); else hydroxide(site[0], site[1], 1.8, 'd1oh2');
+          const arm = [site[0] + 150, site[1] + 40], swing = Math.sin(shuttle * Math.PI), grow = ease(seg(t, t22 + .3, t22 + 1.1)), root = [arm[0] + 80, arm[1] + 80];
+          if (grow > .02) ligand(root[0], root[1], lerp(root[0], lerp(arm[0], arm[0] + 140, swing), grow), lerp(root[1], lerp(arm[1], arm[1] - 160, swing), grow), 'H', 'd1his64');
+          if (shuttle > 0 && shuttle < 1) { const q = [lerp(site[0] + 30, arm[0] + 140, ease(shuttle)), lerp(site[1] - 10, arm[1] - 180, ease(shuttle))]; proton(q[0], q[1], 1.5, 'd1h2'); }
+          if (table > .02) {
+            ppTable(site[0] - 380, site[0] + 380, site[1] + 150 - 40 * (1 - table), 'd1pt');
+            const rally = (t - (t22 + 7.0)) / .9, k = frac(Math.max(0, rally)), dirR = Math.floor(Math.max(0, rally)) % 2;
+            if (rally > 0) { const p = arcPt([site[0] + (dirR ? 300 : -300), site[1] + 90], [site[0] + (dirR ? -300 : 300), site[1] + 90], 140, k); (dirR ? bicarb : co2)(p[0], p[1], 1.0, 'd1rb', 0); }
+          }
         }
       }
       const o = K.act(t, [[L(20, 4.2), 'wow', { lookX: -.8 }], [L(21, 4.4), 'excited', { lookX: -.8 }], [L(22, 6.5), 'happy', { lookX: -.8, lookY: .3 }]]);
@@ -883,6 +930,7 @@
     if (t > L(23, -.8) && t < L(23, -.2)) flash(on(t, L(23, -.8), L(23, -.2), .3, .3), PAL.cream);
     if (t > L(24, -.6) && t < L(24, 0)) flash(on(t, L(24, -.6), L(24, 0), .3, .3), PAL.cream);
     if (t > L(25, -.6) && t < L(25, 0)) flash(on(t, L(25, -.6), L(25, 0), .3, .3), PAL.cream);
+    if (lt > dur - .3) flash(seg(lt, dur - .3, dur), PAL.cream);          // the whip pan ends in a flash, so the cut can't be seen
     streaks(seg(lt, dur - .45, dur), 'd1wp');
   }
 
@@ -950,23 +998,56 @@
         o = TOON.mix(o, ...snips.map(s0 => TOON.jelly(t, s0, .6)));
         TOON.pip(ppx, 860, 32, { ...o, key: 'd2pip2' });
       }
-    } else if (t < L(29, -.3)) {                                   // L28: the liver (alcohol); a scrape mended by zinc scissors
-      K.wash('#DCEFE6', t, { key: 'd2l', blob: '#EEF8F2', n: 3 });
-      organ('liver', 480, 420, 2.6, seg(t, L(28, .2), L(28, .8)), 'd2lv');
-      const ek = seg(t, L(28, 1.0), L(28, 3.0));                    // ethanol (two C + OH) → acetaldehyde (an H leaves)
-      const ex = lerp(300, 700, ease(ek));
-      for (let j = 0; j < 2; j++) { boilSeed('d2et' + j); paint(ellPts(ex + j * 34, 640, 16, 16, 10), { wash: Z.c, ink: PAL.ink, sw: .8 }); }
-      paint(ellPts(ex + 64, 624, 13, 13, 10), { wash: '#E24A3A', ink: PAL.ink, sw: .8 });
-      if (ek < .7) paint(ellPts(ex + 86, 610, 7, 7, 8), { wash: PAL.cream, ink: PAL.ink, sw: .6 }); else proton(ex + 86 + 120 * seg(ek, .7, 1), 610 - 80 * seg(ek, .7, 1), .8, 'd2eh');
-      zn(ex + 30, 590, 12, 'd2ez', { plus: 0, glow: .3 });
-      // the arm with a scrape: old collagen cut, new laid
-      boilSeed('d2arm'); paint(ribbon([[980, 860], [1760, 620]], 120, 100), { wash: '#F3D6C4', ink: PAL.ink, sw: 1.2 });
-      const heal = seg(t, L(28, 5.0), L(28, 9.5));
-      for (let i = 0; i < 6; i++) { const x = 1200 + i * 60, y = 790 - i * 18, cut = seg(heal, i / 8, i / 8 + .2), lay = seg(heal, .4 + i / 12, .55 + i / 12);
-        boilSeed('d2col' + i); inkLine([[x - 30, y + 30], [x + 30, y - 30]], 5, cut < 1 ? '#C46A5A' : mixCol('#F2D2C4', '#E6A090', 1 - lay), 'ink', .2); }
-      const sc = 1200 + 300 * heal; scissors(sc, 760 - heal * 90, 1.0, .3 + .5 * Math.abs(Math.sin(t * 8)), -2.5, 'd2sc2');
-      const o = K.act(t, [[L(28, -.3), 'calm', { lookX: -.6 }], [L(28, 4.0), 'worried', { lookX: .6, lookY: .4, blush: .4 }], [L(28, 8.0), 'happy', { lookX: .6 }]]);
-      K.swim(860, 640, 30, t, { ...o }, 'd2pip3');
+    } else if (t < L(29, -.3)) {                                   // L28: two beats. The liver: tipsy Pip pours an ethanol into the zinc enzyme, which
+      K.wash('#DCEFE6', t, { key: 'd2l', blob: '#EEF8F2', n: 3 });  // plucks an H off and lets it go. Then a wound, close: zinc scissors cut the old
+      if (t < L(28, 3.5)) {                                         // tangled collagen, new fibres are laid straight, the wound closes
+        organ('liver', 620, 480, 3.6, seg(t, L(28, -.3), L(28, .3)), 'd2lv');
+        const ek = popK(seg(t, L(28, .4), L(28, .9))); protein(700, 540, 2.4 * ek, 'd2adh', { col: '#F4D79A', zn: seg(t, L(28, .6), L(28, 1.0)) });
+        // ethanol C–C–O–H; once the H is gone, acetaldehyde C–C=O
+        const alc = (x, y, s, h, key) => { boilSeed('alc' + key); inkLine([[x - 40 * s, y], [x + 28 * s, y - 4 * s]], 2.4 * s, PAL.ink, 'ink', 0); if (!h) inkLine([[x - 6 * s, y + 7 * s], [x + 28 * s, y + 3 * s]], 2.4 * s, PAL.ink, 'ink', 0);
+          for (const cx of [-40, -6]) paint(ellPts(x + cx * s, y, 16 * s, 16 * s, 12), { wash: Z.c, ink: PAL.ink, sw: .8 });
+          paint(ellPts(x + 28 * s, y - 4 * s, 14 * s, 14 * s, 12), { wash: '#E24A3A', ink: PAL.ink, sw: .8 }); if (h) paint(ellPts(x + 46 * s, y - 18 * s, 8 * s, 8 * s, 10), { wash: PAL.cream, ink: PAL.ink, sw: .6 }); };
+        const ppx = 1480, ppy = 880, pour = L(28, 1.7), seat = L(28, 2.5), pluck = L(28, 2.8), leave = L(28, 3.0);
+        let o = K.act(t, [[L(28, -.3), 'dizzy', { lookX: -.6, blush: .9 }], [L(28, 1.4), 'scheme', { lookX: -.8, blush: .9 }], [leave, 'happy', { lookX: -.6 }]]);
+        o = { ...o, flip: true, armF: t < leave ? [lerp(.4, 1.1, ease(seg(t, pour - .4, pour))), 2.4] : o.armF };
+        TOON.pip(ppx, ppy, 34, { ...o, key: 'd2pip3' });
+        const h = TOON.hand(ppx, ppy, 34, o);
+        if (t < leave) { boilSeed('d2gl'); const g = [h[0], h[1] - 6];                     // a wine glass
+          paint([[g[0] - 22, g[1] - 46], [g[0] + 22, g[1] - 46], [g[0] + 16, g[1] - 14], [g[0], g[1] - 6], [g[0] - 16, g[1] - 14]], { wash: '#EEF3F6', washOp: 200, ink: PAL.ink, sw: .8, curv: .4 });
+          if (t < pour) paint([[g[0] - 18, g[1] - 32], [g[0] + 18, g[1] - 32], [g[0] + 12, g[1] - 14], [g[0], g[1] - 9], [g[0] - 12, g[1] - 14]], { wash: '#B23A48', ink: null, curv: .4 });
+          inkLine([[g[0], g[1] - 6], [g[0], g[1] + 18]], 1.2, PAL.ink, 'inkfine', 0); paint(ellPts(g[0], g[1] + 20, 14, 4, 10), { wash: '#EEF3F6', ink: PAL.ink, sw: .7 }); }
+        const S = [h[0] - 10, h[1] - 70], A = [661, 434];             // A: the ethanol's seat, its O on the zinc
+        if (t > pour && t < seat) alc(...arcPt(S, A, 160, ease(seg(t, pour, seat))), 1.4, true, 'd2et');
+        else if (t >= seat && t < leave + .55) alc(t < leave ? A[0] : lerp(A[0], -200, easeIn(seg(t, leave, leave + .55))), A[1], 1.4, t < pluck, 'd2et');
+        if (t > seat && t < seat + .3) K.burst(A[0] + 39, A[1] + 10, 40, seg(t, seat, seat + .3), PAL.cream, 'd2grip');
+        if (t > pluck && t < pluck + .8) { const k = easeOut(seg(t, pluck, pluck + .8)); proton(A[0] + 64 + 180 * k, A[1] - 25 - 160 * k, 1.1, 'd2eh'); }
+      } else {
+        const fy = i => 380 + 80 * i, X0 = 540, X1 = 1120, WX = 830, cuts = [0, 1, 2, 3, 4, 5].map(i => L(28, 4.7 + .3 * i));
+        boilSeed('d2tis'); paint(rrPts(X0 - 60, 290, X1 - X0 + 120, 540, 40), { wash: '#F3D6C4', ink: PAL.ink, sw: 1.2 });   // the tissue, close up
+        paint(rrPts(X0 - 60, 290, X1 - X0 + 120, 46, 20), { wash: '#EBC2AE', ink: null });                                       // the skin on top
+        const close = ease(seg(t, L(28, 6.4), L(28, 8.6))), wg = 130 * (1 - close);
+        if (wg > 4) { boilSeed('d2wd'); paint(rrPts(WX - wg / 2, 300, wg, 500, wg / 2), { wash: '#D96A5E', ink: null }); }          // the wound
+        for (let i = 0; i < 6; i++) {                                 // the old collagen: tangled, cut through at the wound, the halves pull back and fade
+          const k = seg(t, cuts[i], cuts[i] + .6), wob = x => fy(i) + 22 * Math.sin(x * .045 + i * 1.7) + 12 * Math.sin(x * .11 + i);
+          const span = (a, b) => { const P = []; for (let j = 0; j <= 12; j++) { const x = lerp(a, b, j / 12); P.push([x, wob(x)]); } return P; };
+          boilSeed('d2old' + i); const col = mixCol('#A0604E', '#F3D6C4', k);
+          if (t < cuts[i]) inkLine(span(X0, X1), 4.5, col, 'ink', .4);
+          else if (k < 1) { inkLine(span(X0, lerp(WX, X0 + 40, k)), 4.5, col, 'ink', .4); inkLine(span(lerp(WX, X1 - 40, k), X1), 4.5, col, 'ink', .4); }
+          if (t > cuts[i] && t < cuts[i] + .25) K.burst(WX, fy(i), 30, seg(t, cuts[i], cuts[i] + .25), PAL.ink, 'd2cut' + i);
+        }
+        for (let i = 0; i < 6; i++) { const k = ease(seg(t, L(28, 6.3 + .2 * i), L(28, 7.0 + .2 * i))); if (k > .01) { const y = fy(i) + 10, xe = lerp(X0, X1, k);   // new fibres, laid straight
+          boilSeed('d2new' + i); inkLine([[X0, y], [lerp(X0, xe, .5), y + 4], [xe, y]], 5, '#E99A8A', 'ink', .4); if (k < 1) K.sparkle(xe, y, 18, frac(t * 3 + i * .3), PAL.cream); } }
+        // the MMP: big zinc scissors, in from the right, down the wound one fibre at a time, a snip at each; then up to rest beside the
+        // tissue, where the zinc at its pivot glows at "also a zinc enzyme"
+        let yS = fy(0); for (let i = 1; i < 6; i++) yS += 80 * ease(seg(t, cuts[i - 1] + .05, cuts[i] - .1));
+        const rest = ease(seg(t, L(28, 6.3), L(28, 6.9))), xS = lerp(lerp(1950, 1040, ease(seg(t, L(28, 3.6), L(28, 4.4)))), 1330, rest);
+        yS = lerp(yS, 470, rest);
+        const snip = cuts.reduce((a, c) => Math.max(a, pulseK(t, c - .12, .26)), 0), zg = on(t, L(28, 8.3), L(29, -.3), .4, .2);
+        if (zg > .01) glow(xS, yS, 120, '#BFE8FF', .8 * zg);
+        scissors(xS, yS, 3.0, .25 + .7 * (1 - snip) - .2 * rest, lerp(Math.PI, Math.PI * 1.22, rest), 'd2sc2');
+        let o = K.act(t, [[L(28, 3.5), 'worried', { lookX: -.6 }], [cuts[0], 'wow', { lookX: -.8 }], [L(28, 6.6), 'calm', { lookX: -.6 }], [L(28, 8.3), 'happy', { lookX: -.6 }]]);
+        TOON.pip(1680, 900, 32, { ...o, flip: true, key: 'd2pip3b' });
+      }
     } else {                                                        // L29: six drawers, a zinc in every one; a medal
       K.wash('#DCEFE6', t, { key: 'd2d', blob: '#EEF8F2', n: 3 });
       const shapes = [0, 1, 2, 3, 4, 5];
@@ -981,11 +1062,13 @@
       if (mk > 0) K.medal(lerp(1560, 1190, ease(mk)), lerp(700, 330, ease(mk)), 1.2, t, 1, 'd2md');
     }
     camEnd();
+    if (lt < .3) flash(1 - seg(lt, 0, .3), PAL.cream);
     if (lt < .45) streaks(1 - seg(lt, 0, .45), 'd2in');
     if (t > L(26, 5.1) && t < L(26, 5.7)) flash(on(t, L(26, 5.1), L(26, 5.7), .3, .3), PAL.cream);
     if (t > L(27, -.6) && t < L(27, 0)) flash(on(t, L(27, -.6), L(27, 0), .3, .3), PAL.cream);
     if (t > L(27, 3.1) && t < L(27, 3.7)) flash(on(t, L(27, 3.1), L(27, 3.7), .3, .3), PAL.cream);
     if (t > L(28, -.6) && t < L(28, 0)) flash(on(t, L(28, -.6), L(28, 0), .3, .3), PAL.cream);
+    if (t > L(28, 3.2) && t < L(28, 3.8)) flash(on(t, L(28, 3.2), L(28, 3.8), .3, .3), PAL.cream);   // the liver → the wound
     if (t > L(29, -.6) && t < L(29, 0)) flash(on(t, L(29, -.6), L(29, 0), .3, .3), PAL.cream);
     if (lt > dur - .3) brushWipe((lt - (dur - .3)) / .6, ['#8E7FC0', '#B9AEDD']);
   }
@@ -1134,6 +1217,7 @@
     camEnd();
     if (lt < .3) brushWipe(.5 + lt / .6, ['#8E7FC0', '#B9AEDD']);
     for (const ln of [32, 33, 34]) if (t > L(ln, -.6) && t < L(ln, 0)) flash(on(t, L(ln, -.6), L(ln, 0), .3, .3), PAL.cream);
+    if (lt > dur - .3) flash(seg(lt, dur - .3, dur), PAL.cream);
   }
 
   // ================================ E2 · fingers read DNA; scissors; insulin's parcel (L35 – L39) ================================
@@ -1219,6 +1303,8 @@
     }
     camEnd();
     for (const ln of [36, 37, 38, 39]) if (t > L(ln, -.6) && t < L(ln, 0)) flash(on(t, L(ln, -.6), L(ln, 0), .3, .3), PAL.cream);
+    if (t > L(36, 5.3) && t < L(36, 5.9)) flash(on(t, L(36, 5.3), L(36, 5.9), .3, .3), PAL.cream);     // the genes give way to the receptor
+    if (lt < .3) flash(1 - seg(lt, 0, .3), PAL.cream);
     if (lt > dur - .35) flash(seg(lt, dur - .35, dur), PAL.cream);
   }
 
@@ -1241,7 +1327,7 @@
         if (Math.hypot(p[0] - C0[0], p[1] - C0[1] + 60) < 120) continue; protein(p[0], p[1], .55 * popK(seg(t, L(40, 2.6) + i * .04, L(40, 3.0) + i * .04)), 'f1p' + i, { zn: 1, col: pastel(i) }); }
       const free = [C0[0] + 180 + 20 * Math.sin(t * 1.3), C0[1] - 150 + 14 * Math.cos(t * 1.1)];
       if (t > L(40, 5.6)) { const sw = ease(seg(t, L(40, 5.8), L(40, 9.2))), mx = lerp(C0[0] - 260, free[0], sw), my = lerp(C0[1] + 200, free[1], sw);
-        if (t > L(40, 9.2)) zn(free[0], free[1], 14, 'f1free', { plus: 0, glow: .8 }); else zn(free[0], free[1], 9, 'f1free', { plus: 0 });
+        const lit = seg(t, L(40, 9.2), L(40, 9.5)); zn(free[0], free[1], lerp(9, 14, backOut(lit)), 'f1free', { plus: 0, glow: .8 * lit });
         if (t < L(41, .3)) magnifier(mx, my, 1.1, 'f1mg'); }
       if (startle) for (let i = 0; i < 14; i++) { const k = seg(t, puffAt, puffAt + 1.6), a = i / 14 * TAU; if (k < 1) spark(free[0] + Math.cos(a) * 160 * easeOut(k), free[1] + Math.sin(a) * 120 * easeOut(k), 9 * (1 - k), 'f1pf' + i, 1 - k); }
       let o = K.act(t, [[L(40, -.5), 'calm', { lookX: -.6 }], [L(40, 9.2), 'wow', { lookX: -.6, lookY: -.3 }], [L(41, .6), 'calm', { lookX: 0 }]]);
@@ -1336,13 +1422,14 @@
     pop();
   }
   // metallothionein: a little yellow sponge with twenty sulfur dots; n zincs held (0..7); ox 0..1 (the sulfurs oxidised, blue)
-  function sponge(x, y, s, key, n, ox = 0, sq = 0) {
+  const spongeSlot = (x, y, s, i) => { const a = i / 7 * TAU, d = i ? 46 * s : 0; return [x + Math.cos(a) * d, y + Math.sin(a) * d * .7]; };   // where zinc i sits
+  function sponge(x, y, s, key, n, ox = 0, sq = 0, jig = 0) {        // jig: the held zincs rattle loose
     boilSeed('mt' + key);
     const P = []; for (let i = 0; i < 22; i++) { const a = i / 22 * TAU, r = 1 + .1 * Math.sin(a * 5 + 1); P.push([x + Math.cos(a) * 110 * s * r * (1 + sq), y + Math.sin(a) * 80 * s * r * (1 - sq)]); }
     paint(P, { wash: '#F2D46A', ink: PAL.ink, sw: 1.2, curv: .3 });
     for (let i = 0; i < 9; i++) { boilSeed('mth' + key + i); paint(ellPts(x + (hash(i + 1) - .5) * 160 * s, y + (hash(i + 4) - .5) * 100 * s, 9 * s, 7 * s, 8), { wash: '#D9B84A', ink: null }); }
     for (let i = 0; i < 20; i++) { const a = i / 20 * TAU + .1, p = [x + Math.cos(a) * 96 * s * (1 + sq), y + Math.sin(a) * 68 * s * (1 - sq)]; boilSeed('mts' + key + i); paint(ellPts(p[0], p[1], 7 * s, 7 * s, 8), { wash: mixCol(Z.cys, Z.o, ox), ink: PAL.ink, sw: .5 }); }
-    for (let i = 0; i < Math.round(n); i++) { const a = i / 7 * TAU, d = i ? 46 * s : 0; zn(x + Math.cos(a) * d, y + Math.sin(a) * d * .7, 15 * s, key + 'z' + i, { plus: 0 }); }
+    for (let i = 0; i < Math.round(n); i++) { const p = spongeSlot(x, y, s, i); zn(p[0] + jig * 5 * Math.sin(T * 31 + i * 2), p[1] + jig * 4 * Math.sin(T * 27 + i), 15 * s, key + 'z' + i, { plus: 0 }); }
   }
   function door(x, y, s, kind, open, key) {                        // a transporter as a door in the membrane: ZIP teal (in), ZnT orange (out)
     boilSeed('dr' + key);
@@ -1387,12 +1474,15 @@
       else sack(320, 900, 1.0, 'g1sk', 1);
       if (t > L(48, 8.0)) { const hd = TOON.head(ppx, 880, 32, o); boilSeed('g1cap'); paint([[hd[0] - 50, hd[1] + 6], [hd[0] + 50, hd[1] + 6], [hd[0] + 30, hd[1] - 24], [hd[0] - 30, hd[1] - 24]], { wash: '#3D5F98', ink: PAL.ink, sw: 1 }); }
     } else if (t < L(51, -.3)) {                                   // L49–L50: the sponge soaks up seven zincs; oxidised, it lets go; Pip squeezes, splat
-      const n = 7 * ease(seg(t, L(49, 6.0), L(49, 9.4))), ox = ease(seg(t, L(50, 4.6), L(50, 5.4))), let_ = t > L(50, 6.0), sqz = L(50, 6.8);
-      const sq = .25 * pulseK(t, sqz - .2, .5);
-      sponge(900, 560, 1.9 * popK(seg(t, L(49, 1.2), L(49, 1.8))), 'g1mt', let_ ? 7 * (1 - seg(t, L(50, 6.0), L(50, 6.6))) : n, ox, sq);
-      for (let i = 0; i < 7; i++) { const k = seg(t, L(49, 6.0) + i * .45, L(49, 6.5) + i * .45); if (k > 0 && k < 1) zn(...arcPt([200 + 100 * i, 160], [900, 560], 100, ease(k)), 26, 'g1in' + i, { plus: 0 }); }
+      // each zinc flies to its own seat in the sponge and stays there: the count inside is the number that have landed
+      const lands = [0, 1, 2, 3, 4, 5, 6].map(i => L(49, 6.5 + .45 * i)), ox = ease(seg(t, L(50, 4.6), L(50, 5.4))), let_ = t > L(50, 6.0), sqz = L(50, 6.8);
+      const S = 1.9, n = t < sqz ? lands.filter(l => t >= l).length : 0;
+      const sq = .25 * pulseK(t, sqz - .2, .5) + .07 * lands.reduce((a, l) => Math.max(a, pulseK(t, l, .3)), 0);
+      sponge(900, 560, S * popK(seg(t, L(49, 1.2), L(49, 1.8))), 'g1mt', n, ox, sq, let_ ? 1 : 0);
+      for (let i = 0; i < 7; i++) { const k = seg(t, lands[i] - .5, lands[i]); if (k > 0 && k < 1) zn(...arcPt([200 + 100 * i, 160], spongeSlot(900, 560, S, i), 100, ease(k)), 15 * S, 'g1in' + i, { plus: 0 }); }
       if (t > L(50, 2.8)) h2o2(lerp(1500, 1040, ease(seg(t, L(50, 2.8), L(50, 4.6)))), lerp(260, 440, ease(seg(t, L(50, 2.8), L(50, 4.6)))), 2.0, .5, 'g1hp');
-      if (let_) for (let i = 0; i < 7; i++) { const k = seg(t, sqz, sqz + .6); if (k > 0) zn(...arcPt([1000, 500], [1450 + (i - 3) * 20, 640 + (i % 3) * 30], 60, easeOut(k)), 24, 'g1sq' + i, { plus: 0, glow: .3 }); }
+      // oxidised, the sponge lets go (the zincs rattle loose), and Pip's squeeze shoots all seven out from their seats
+      for (let i = 0; i < 7; i++) { const k = seg(t, sqz, sqz + .6); if (k > 0) zn(...arcPt(spongeSlot(900, 560, S, i), [1450 + (i - 3) * 20, 640 + (i % 3) * 30], 60, easeOut(k)), lerp(15 * S, 24, k), 'g1sq' + i, { plus: 0, glow: .3 }); }
       let o = K.act(t, [[L(49, -.3), 'calm', { lookX: -.6 }], [L(49, 6.0), 'wow', { lookX: -.6 }], [L(50, 6.4), 'scheme', { lookX: -.8 }], [sqz + .2, 'deadpan']]);
       if (t > L(50, 6.2) && t < sqz + .2) o = { ...o, flip: true, armF: [.1, 3.4], armB: { to: [3.2 * 34, -2.6 * 34] } };
       o = { ...o, flip: true };
@@ -1403,7 +1493,7 @@
       paint(rectPts(-400, 560, W + 800, 700), { wash: '#F6E3D2', ink: null }); paint(rectPts(-400, -400, W + 800, 800), { wash: '#DDE6EE', ink: null });
       for (let i = 0; i < 24; i++) { const x = 120 + i * 72, kind = i % 12 < 7 ? 'zip' : 'znt', k = popK(seg(t, L(51, 2.4) + i * .1, L(51, 2.8) + i * .1));
         if (k > .05) door(x, 480, .9 * k, kind, .3 + .3 * Math.sin(t * 3 + i), 'g1d' + i);
-        const ph = frac((t - L(51, 4.0)) / 1.8 + i * .13); if (t > L(51, 4.0)) zn(x, kind === 'zip' ? lerp(300, 680, ph) : lerp(680, 300, ph), 10, 'g1dz' + i, { plus: 0 }); }
+        const ph = frac((t - L(51, 4.0)) / 1.8 + i * .13); if (t > L(51, 4.0)) zn(x, kind === 'zip' ? lerp(300, 680, ph) : lerp(680, 300, ph), 10 * popK(seg(t, L(51, 4.0) + i * .03, L(51, 4.4) + i * .03)) * Math.min(1, 4 * Math.sin(ph * Math.PI)), 'g1dz' + i, { plus: 0 }); }
       const slam = L(51, 8.6);
       let o = K.act(t, [[L(51, -.3), 'calm', { lookX: .8 }], [L(51, 5.0), 'smug', { lookX: .8 }]]);
       if (t > L(51, 5.0) && t < slam) o = { ...o, armF: [.8 + .4 * Math.sin(t * 6), 2.8] };
@@ -1437,6 +1527,7 @@
     camEnd();
     for (const ln of [49, 51, 52, 54]) if (t > L(ln, -.6) && t < L(ln, 0)) flash(on(t, L(ln, -.6), L(ln, 0), .3, .3), PAL.cream);
     if (lt < .3) brushWipe(.5 + lt / .6, ['#E8A57E', '#F2C2A0']);
+    if (lt > dur - .3) flash(seg(lt, dur - .3, dur), PAL.cream);          // the whip pan ends in a flash, so the cut can't be seen
     streaks(seg(lt, dur - .45, dur), 'g1wp');
   }
 
@@ -1510,20 +1601,31 @@
       if (t > snap && t < L(56, 7.4)) { const m = TOON.mouth(ppx, ppy, 34, o); oyster(m[0] + 50, m[1] - 10, .6, .05, 'h1nose'); }
       const par = seg(t, L(56, 7.6), L(56, 10.6));
       ['steak', 'clam', 'nuts', 'beans'].forEach((kd, i) => { const k = ease(seg(par, i * .18, i * .18 + .4)); if (k > 0) food(kd, lerp(2100, 1240 + i * 160, k), 400 + (i % 2) * 70, 1.1, 'h1f' + i); });
-    } else if (t < L(58, -.3)) {                                   // L57: grains and beans; phytate grabs zinc in the gut; Pip pulls and sticks like flypaper
-      K.wash('#F3E6D2', t, { key: 'h1g', blob: '#FAF1E4', n: 3 });
+    } else if (t < L(58, -.3)) {                                   // L57: grains and beans; phytate grabs a zinc in the gut; Pip grabs the zinc and hauls,
+      K.wash('#F3E6D2', t, { key: 'h1g', blob: '#FAF1E4', n: 3 });  // the sticky arm stretches like taffy, snaps back and glues Pip on too
       villi(t, 'h1v');
-      ['grain', 'beans', 'grain'].forEach((kd, i) => food(kd, 300 + i * 160, 220, 1.4 * popK(seg(t, L(57, .3) + i * .2, L(57, .7) + i * .2)), 'h1gr' + i));
-      const pk = popK(seg(t, L(57, 2.0), L(57, 2.8))), grab = ease(seg(t, L(57, 3.3), L(57, 4.4))), P = [1060, 480];
+      ['grain', 'beans', 'grain'].forEach((kd, i) => food(kd, 260 + i * 230, 220, 1.9 * popK(seg(t, L(57, .3) + i * .2, L(57, .7) + i * .2)), 'h1gr' + i));
+      const pk = popK(seg(t, L(57, 2.0), L(57, 2.8))), grab = ease(seg(t, L(57, 3.3), L(57, 4.4))), P = [1060, 480], Z0 = [P[0] + 165, P[1]];
       if (pk > .05) phytate(P[0], P[1], 1.6 * pk, 'h1py', t);
-      zn(lerp(1500, P[0] + 70, grab), lerp(380, P[1] - 60, grab), 22, 'h1pz');
-      const pull = L(57, 5.6), stuck = t > L(57, 6.6);
-      let o = K.act(t, [[L(57, -.3), 'calm', { lookX: -.6 }], [L(57, 4.4), 'angry', { lookX: -.8 }], [pull, 'strain', { lookX: -.8 }], [L(57, 6.6), 'shock', { take: 1 }], [L(57, 7.6), 'mortified']]);
-      const ppx = stuck ? 1300 + 40 * Math.sin(t * 5) * (1 - seg(t, L(57, 7.6), L(57, 8.6))) : 1340;
-      if (t > pull - .3) o = { ...o, flip: true, armF: { to: [-(ppx - (P[0] + 100)), -(860 - (P[1] + 40))] }, rot: stuck ? -.08 : .15 };
-      o = { ...o, flip: true };
-      TOON.pip(ppx, 860, 34, { ...o, key: 'h1pip2' });
-      if (t > pull - .3) { const h = TOON.hand(ppx, 860, 34, o); boilSeed('h1gum'); inkLine([h, [P[0] + 100, P[1] + 40]], stuck ? 6 : 3, '#F0B94A', 'ink', .4); }
+      const reach = L(57, 5.0), pull = L(57, 5.6), held = L(57, 6.5), back = L(57, 6.6), hitP = back + .2, px0 = 1370, XS = 1300, ppy = 640;
+      const str = t < pull ? 0 : t < back ? ease(seg(t, pull, held)) : 1 - easeIn(seg(t, back, hitP));           // how far the taffy is stretched
+      const struggle = t > hitP ? 14 * Math.sin((t - hitP) * 13) * (1 - seg(t, L(57, 8.6), L(57, 9.6))) : 0;
+      // the zinc rides in Pip's hands 220·str out from its seat; Pip hauls from px0, and the snap-back slams it in closer, at XS
+      const ppx = t < reach ? lerp(1640, px0, ease(seg(t, L(57, 4.4), reach))) : t < back ? px0 + 220 * str : XS + (px0 + 220 - XS) * str + struggle;
+      const Zp = t < reach ? [lerp(1500, Z0[0], grab), lerp(380, Z0[1], grab)] : [Z0[0] + 220 * str + .3 * struggle, Z0[1]];
+      // the sticky phosphate arm: a gold strand from the ring to the zinc, thinner the further it's stretched; once Pip is stuck, gobs of it on Pip too
+      if (pk > .05 && grab > .9) { const e = [P[0] + 122 * Math.cos(.1 * Math.sin(t * 3)), P[1] + 122 * Math.sin(.1 * Math.sin(t * 3))]; boilSeed('h1taf'); paint(ribbon([e, [lerp(e[0], Zp[0], .5), e[1] + 10 * str], Zp], lerp(26, 7, str), lerp(26, 7, str)), { wash: '#F0B94A', ink: PAL.ink, sw: .8 }); }
+      if (t > reach - .3 && t < reach + .25) K.sparkle(Zp[0], Zp[1], 30, seg(t, reach - .3, reach + .25), PAL.cream);
+      zn(Zp[0], Zp[1], 22, 'h1pz');
+      let o = K.act(t, [[L(57, -.3), 'calm', { lookX: -.6 }], [L(57, 4.4), 'angry', { lookX: -.8 }], [pull, 'strain', { lookX: -.8 }], [back, 'shock', { take: 1 }], [L(57, 7.4), 'mortified']]);
+      o = TOON.mix({ ...o, flip: true }, t > hitP ? TOON.jelly(t, hitP, 1.2) : {}, { rot: (t < back ? .25 * str : 0) + (t > hitP ? .004 * struggle : 0), dy: -7 * Math.sin(t * 2.1) * (1 - seg(t, L(57, 4.6), reach)) / 34 });
+      if (t > hitP && t < hitP + .2) o = TOON.mix(o, { sq: -.3 * (1 - seg(t, hitP, hitP + .2)) });
+      if (t > reach - .4) { const k = ease(seg(t, reach - .4, reach)), tgt = d => [lerp(ppx - 2 * 34, Zp[0] + 14, k), lerp(ppy - 2.6 * 34, Zp[1] + d, k)];   // both hands on the zinc
+        o = { ...o, armF: reachTo(ppx, ppy, 34, o, tgt(-8)), armB: reachTo(ppx, ppy, 34, o, tgt(10)) }; }
+      TOON.pip(ppx, ppy, 34, { ...o, key: 'h1pip2' });
+      if (t > hitP) { const g = TOON.geo(ppx, ppy, 34, o), k = ease(seg(t, hitP, hitP + .25));   // the neighbouring sticky arms glue Pip on as well
+        [[-1.05, [1.2, -4.1]], [1.05, [1.5, -1.0]]].forEach(([a, lp], i) => { const e = [P[0] + 122 * Math.cos(a), P[1] + 122 * Math.sin(a)], b = g.loc(...lp); boilSeed('h1gob' + i); paint(ribbon([e, [lerp(e[0], b[0], k), lerp(e[1], b[1], k)]], 12, 9), { wash: '#F0B94A', ink: PAL.ink, sw: .7 }); }); }
+      if (t > hitP && t < hitP + .35) K.burst(Zp[0] + 30, Zp[1], 50, seg(t, hitP, hitP + .35), PAL.cream, 'h1slam');
       const veg = popK(seg(t, L(57, 8.4), L(57, 9.0)));
       if (veg > .05) { boilSeed('h1veg'); paint(ellPts(420, 640, 150 * veg, 40 * veg, 20), { wash: '#FBF7EE', ink: PAL.ink, sw: 1 }); food('beans', 380, 620, 1.2 * veg, 'h1vb'); for (let i = 0; i < 3; i++) { paint(ellPts(560 + i * 70, 560, 30 * veg * (i === 2 ? .55 : 1), 16 * veg, 12), { wash: '#C9CFD8', ink: PAL.ink, sw: .8 }); } }
     } else if (t < L(59, -.3)) {                                   // L58: yeast munches phytate and frees zinc; a fluffy mantou rises beside a flat cake
@@ -1552,8 +1654,9 @@
     camEnd();
     for (const ln of [56, 57, 58, 59]) if (t > L(ln, -.6) && t < L(ln, 0)) flash(on(t, L(ln, -.6), L(ln, 0), .3, .3), PAL.cream);
     if (t > L(56, 2.5) && t < L(56, 3.1)) flash(on(t, L(56, 2.5), L(56, 3.1), .3, .3), PAL.cream);
+    if (lt < .3) flash(1 - seg(lt, 0, .3), PAL.cream);
     if (lt < .45) streaks(1 - seg(lt, 0, .45), 'h1in');
-    if (lt > dur - .9) paint(rectPts(-60, -60, W + 120, H + 120), { wash: '#E2C79A', washOp: 255 * ease(seg(lt, dur - .9, dur)), ink: null });
+    if (lt > dur - .9) flash(ease(seg(lt, dur - .9, dur)), '#E2C79A');
   }
 
   // ================================ I1 · too little: the long road, Prasad, the children, the AE baby (L60 – L68; gentle, no Pip) ================================
@@ -1587,11 +1690,11 @@
       const yk = popK(seg(t, L(61, 5.0), L(61, 5.6))), tall = egypt ? lerp(220, 340, ease(seg(t, L(63, 5.6), L(63, 8.4)))) : 220, pale = !egypt && t > L(61, 9.9) ? (t > L(62, 6.0) ? 1 - ease(seg(t, L(62, 6.0), L(62, 7.0))) : ease(seg(t, L(61, 9.9), L(61, 10.6)))) : 0;
       if (yk > .05) person(1140, 950, tall * yk, 'i1man', { col: mixCol('#F6EFE3', '#E6E6EE', pale) });
       if (egypt) for (let i = 0; i < 2; i++) person(1400 + i * 140, 950, lerp(200, 320, ease(seg(t, L(63, 5.6) + i * .3, L(63, 8.4) + i * .3))), 'i1teen' + i);
-      if (t > L(62) && t < L(63)) { const fb = popK(seg(t, L(62, .4), L(62, 1.0))), cl = popK(seg(t, L(62, 2.8), L(62, 3.4)));
+      if (t > L(62) && t < L(63)) { const gone = 1 - ease(seg(t, L(63, -.4), L(63, -.05))), fb = popK(seg(t, L(62, .4), L(62, 1.0))) * gone, cl = popK(seg(t, L(62, 2.8), L(62, 3.4))) * gone;
         if (fb > .05) flatCake(860, 520, 1.1 * fb, 'i1fb'); if (cl > .05) { boilSeed('i1clay'); paint(ellPts(1560, 540, 120 * cl, 44 * cl, 18).filter(p => p[1] >= 520), { wash: '#C9A57A', ink: PAL.ink, sw: 1 }); paint(ellPts(1560, 520, 100 * cl, 22 * cl, 16), { wash: '#8C6A44', ink: PAL.ink, sw: .8 }); }
-        const fk = seg(t, L(62, 5.6), L(62, 6.4)); if (fk > 0) ion(...arcPt([1500, 300], [1140, 760], 120, ease(fk)), 22, Z.fe, Z.feDk, 2, 'i1fe');
-        if (t > L(62, 8.2)) pipEmote('question', 1240, 640, 40 * popK(seg(t, L(62, 8.2), L(62, 8.6))), 1, 'i1q2'); }
-      if (t > L(63, .8) && t < L(63, 3.0)) zn(560, 520, 26 * popK(seg(t, L(63, .8), L(63, 1.3))), 'i1zl', { plus: 0, glow: .8 });
+        const fk = seg(t, L(62, 5.6), L(62, 6.4)); if (fk > 0) ion(...arcPt([1500, 300], [1140, 760], 120, ease(fk)), 22 * gone, Z.fe, Z.feDk, 2, 'i1fe');
+        if (t > L(62, 8.2)) pipEmote('question', 1240, 640, 40 * popK(seg(t, L(62, 8.2), L(62, 8.6))) * gone, 1, 'i1q2'); }
+      if (t > L(63, .8) && t < L(63, 3.0)) zn(560, 520, 26 * popK(seg(t, L(63, .8), L(63, 1.3))) * (1 - ease(seg(t, L(63, 2.6), L(63, 2.95)))), 'i1zl', { plus: 0, glow: .8 });
       if (t > L(63, 9.9)) K.check(1700, 360, 120, seg(t, L(63, 9.9), L(63, 10.6)), 'i1ck');
     } else if (t < L(66, -.3)) {                                   // L64–L65: a sixth of the world; four gentle icons
       if (t < L(65, -.3)) {
@@ -1618,7 +1721,7 @@
       if (!broken) door(D[0], D[1], 1.6, 'zip', .3, 'i1zip');
       else { boilSeed('i1brk'); push(); translate(D[0] + 40, D[1] - 90); rotate(.6 + .03 * Math.sin(t * 3)); paint(rrPts(-20, 0, 40, 180, 14), { wash: '#3FA79E', ink: PAL.ink, sw: 1 }); pop(); paint(rrPts(D[0] - 60, D[1] - 90, 40, 180, 14), { wash: '#3FA79E', ink: PAL.ink, sw: 1 }); }
       boilSeed('i1rb'); for (const sd of [-1, 1]) paint(ribbon([[D[0] - 40, D[1] - 90], [D[0] - 40 + sd * 30, D[1] - 130], [D[0] - 40 + sd * 50, D[1] - 110]], 12, 6), { wash: '#C8323C', ink: PAL.ink, sw: .8 });
-      if (sidepath) for (let i = 0; i < 6; i++) { const k = frac((t - L(68, 6.0)) / 1.4 + i / 6), side = i % 2 ? D[0] + 260 : D[0] - 300; zn(side + 20 * Math.sin(k * 9), lerp(420, 880, k), 14, 'i1sp' + i, { plus: 0, glow: .3 }); }
+      if (sidepath) for (let i = 0; i < 6; i++) { const k = frac((t - L(68, 6.0)) / 1.4 + i / 6), side = i % 2 ? D[0] + 260 : D[0] - 300; zn(side + 20 * Math.sin(k * 9), lerp(420, 880, k), 14 * popK(seg(t, L(68, 6.0) + i * .1, L(68, 6.4) + i * .1)) * Math.min(1, 5 * Math.sin(k * Math.PI)), 'i1sp' + i, { plus: 0, glow: .3 }); }
       const baby = popK(seg(t, L(67, 6.4), L(67, 7.0))), grow = ease(seg(t, L(68, 8.6), L(68, 10.4))), patch = t > L(67, 6.9) ? ease(seg(t, L(67, 6.9), L(67, 7.8))) * (1 - ease(seg(t, L(68, 6.4), L(68, 8.4)))) : 0;
       if (baby > .05) { if (grow < .5) { const s_ = 1.5 * baby * lerp(1, 1.3, grow * 2), B = [1480, 720]; boilSeed('i1bb'); paint(ellPts(B[0], B[1] - 56 * s_, 56 * s_, 48 * s_, 18), { wash: '#F6EFE3', ink: PAL.ink, sw: 1.1 }); paint(ellPts(B[0], B[1] - 150 * s_, 48 * s_, 46 * s_, 18), { wash: '#F6EFE3', ink: PAL.ink, sw: 1.1 });
           for (const sd of [-1, 1]) { paint(ellPts(B[0] + sd * 58 * s_, B[1] - 76 * s_, 18 * s_, 12 * s_, 10, 0, sd * .5), { wash: '#F6EFE3', ink: PAL.ink, sw: .9 }); paint(ellPts(B[0] + sd * 30 * s_, B[1] - 4 * s_, 20 * s_, 13 * s_, 10), { wash: '#F6EFE3', ink: PAL.ink, sw: .9 }); }
@@ -1629,7 +1732,7 @@
     }
     camEnd();
     for (const ln of [61, 64, 65, 66, 67]) if (t > L(ln, -.6) && t < L(ln, 0)) flash(on(t, L(ln, -.6), L(ln, 0), .3, .3), '#F2E3C4');
-    if (lt < .9) paint(rectPts(-60, -60, W + 120, H + 120), { wash: '#E2C79A', washOp: 255 * (1 - ease(seg(lt, 0, .9))), ink: null });
+    if (lt < .9) flash(1 - ease(seg(lt, 0, .9)), '#E2C79A');
   }
 
   // ================================ I2 · the chili: no zinc, no taste; zinc back, fire (L69) ================================
@@ -1654,6 +1757,7 @@
     if (t > fire) { const m = TOON.mouth(P[0], P[1], 40, o); for (let i = 0; i < 6; i++) { const k = frac((t - fire) * 2 + i / 6); if (burnK > .1) { boilSeed('i2f' + i); paint(starPts(m[0] - 60 - 300 * k, m[1] - 20 * Math.sin(i), 40 * (1 - k * .5) * burnK, .5, 6, i), { wash: i % 2 ? '#F2C14A' : '#E8542F', ink: PAL.ink, sw: .8 }); } } }
     camEnd();
     if (lt < .4) flash(1 - seg(lt, 0, .4), PAL.cream);
+    if (lt > dur - .3) flash(seg(lt, dur - .3, dur), PAL.cream);          // the whip pan ends in a flash, so the cut can't be seen
     streaks(seg(lt, dur - .45, dur), 'i2wp');
   }
 
@@ -1676,7 +1780,18 @@
     for (const yy of [-180, -60]) inkLine([[x - 104 * s, y + yy * s], [x + 104 * s, y + yy * s]], 4, '#8C6A44', 'ink', 0);
     for (let i = 0; i < n; i++) cu(x - 80 * s + (i % 6) * 32 * s, y - 230 * s - Math.floor(i / 6) * 26 * s + 6 * Math.sin(T * 3 + i), 15 * s, 0, key + 'c' + i, 0, 0);
   }
-  function welder(x, y, u, o) { const hd = TOON.head(x, y, u, o); boilSeed('wd'); paint(rrPts(hd[0] - 2.0 * u * (o.flip ? -1 : 1) - 1.6 * u, hd[1] + 1.2 * u, 3.2 * u, 2.6 * u, .5 * u), { wash: '#4E5A66', ink: PAL.ink, sw: 1 }); paint(rectPts(hd[0] - 1.1 * u, hd[1] + 1.9 * u, 2.2 * u, .6 * u), { wash: '#2A3A55', ink: null }); }
+  // a welder's face shield over Pip's face (it follows the eyes, so it turns and squashes with Pip), a strap over the head;
+  // tip: the welding torch in Pip's front hand, pointing at that spot
+  function welder(x, y, u, o, tip) {
+    const g = TOON.geo(x, y, u, o), fc = [(g.eyes[0][0] + g.eyes[1][0]) / 2, (g.eyes[0][1] + g.eyes[1][1]) / 2 + .35 * u], R = P => rotPts(P, fc[0], fc[1], g.rot);
+    boilSeed('wd');
+    if (tip) { const h = TOON.hand(x, y, u, o), d = Math.hypot(tip[0] - h[0], tip[1] - h[1]) || 1, v = [(tip[0] - h[0]) / d, (tip[1] - h[1]) / d], at = k => [h[0] + v[0] * k, h[1] + v[1] * k];
+      paint(ribbon([at(-12), at(34)], 13, 11), { wash: '#3D4650', ink: PAL.ink, sw: .9 }); paint(ribbon([at(34), at(54)], 7, 5), { wash: Z.brass, ink: PAL.ink, sw: .8 }); }
+    inkLine(through([R([[-1.35 * u, -.95 * u]])[0], [g.head[0], g.head[1] + .15 * u], R([[1.35 * u, -.95 * u]])[0]]), 2.6, '#2E3640', 'ink', .5);
+    paint(R(rrPts(-1.45 * u, -1.2 * u, 2.9 * u, 2.4 * u, .5 * u)), { wash: '#4E5A66', ink: PAL.ink, sw: 1 });
+    paint(R(rectPts(-1.0 * u, -.62 * u, 2.0 * u, .55 * u)), { wash: '#2A3A55', ink: PAL.ink, sw: .7 });
+    paint(R(rectPts(-.8 * u, -.56 * u, .5 * u, .12 * u)), { wash: '#8FA6C8', ink: null });   // a glint on the dark window
+  }
   function thermo(x, y, s, k, key) { boilSeed('th' + key); paint(rrPts(x - 14 * s, y - 180 * s, 28 * s, 180 * s, 14 * s), { wash: '#FBF7EE', ink: PAL.ink, sw: 1 }); paint(ellPts(x, y + 10 * s, 26 * s, 26 * s, 14), { wash: '#C8323C', ink: PAL.ink, sw: 1 }); paint(rectPts(x - 6 * s, y - 160 * s * k, 12 * s, 160 * s * k), { wash: '#C8323C', ink: null }); }
   function shotJ1(t, lt, dur) {
     K.setT(t);
@@ -1694,7 +1809,7 @@
         if (grab > .9) { boilSeed('j1sq'); inkLine(ellPts(cp[0], cp[1], 34 - 4 * Math.sin(t * 10), 34 - 4 * Math.sin(t * 10), 16).concat([ellPts(cp[0], cp[1], 34, 34, 16)[0]]), 6, '#F2D46A', 'ink', .3); }
       }
       const gauge = 1 - ease(seg(t, L(71, 7.0), L(71, 8.0)));
-      if (t > L(71, 6.6)) { boilSeed('j1gg'); paint(ellPts(1560, 360, 120, 120, 24).filter(p => p[1] <= 362), { wash: '#FFFDF6', ink: PAL.ink, sw: 1.2 }); const a = Math.PI + Math.PI * .8 * gauge; inkLine([[1560, 360], [1560 + Math.cos(a) * 100, 360 + Math.sin(a) * 100]], 4, PAL.ink, 'ink', 0); cu(1560, 300, 18, 0, 'j1gcu', 0, 0); }
+      if (t > L(71, 6.6)) { const gk = popK(seg(t, L(71, 6.6), L(71, 7.0))); push(); translate(1560, 360); scale(Math.max(.01, gk)); translate(-1560, -360); boilSeed('j1gg'); paint(ellPts(1560, 360, 120, 120, 24).filter(p => p[1] <= 362), { wash: '#FFFDF6', ink: PAL.ink, sw: 1.2 }); const a = Math.PI + Math.PI * .8 * gauge; inkLine([[1560, 360], [1560 + Math.cos(a) * 100, 360 + Math.sin(a) * 100]], 4, PAL.ink, 'ink', 0); cu(1560, 300, 18, 0, 'j1gcu', 0, 0); pop(); }
       let o = K.act(t, [[L(70, -.5), 'scheme', { lookX: .5 }], [gulp + .4, 'munch'], [fz, 'deadpan'], [L(70, 4.6), 'worried', { lookX: .8 }], [L(71, 7.4), 'mortified']]);
       if (t > L(70, -.6) && t < gulp) o = { ...o, armF: [.8, 3] };
       if (t > gulp && t < gulp + .6) o = { ...o, armF: { at: [.8, -2.6] }, armsFront: true };
@@ -1716,11 +1831,11 @@
         if (t > sqz) { const g = TOON.geo(1680, 880, 34, { flip: true }); for (let i = 0; i < 7; i++) { const k = seg(t, sqz, sqz + .25 + i * .03); boilSeed('j1spl' + i); paint(ellPts(lerp(1660, g.mid[0] - 40 + (hash(i) - .5) * 120, k), lerp(640, g.mid[1] - 40 + (hash(i + 3) - .5) * 140, k), 22 + 14 * hash(i + 5), 18 + 10 * hash(i), 12, 3), { wash: '#FBF7EE', ink: PAL.ink, sw: .8 }); } }
       } else {
         bucket(560, 860, 1.4 * popK(seg(t, L(73, 1.2), L(73, 1.8))), 'j1bk');
-        for (let i = 0; i < 4; i++) { const k = frac((t - L(73, 1.8)) / 1.2 + i / 4); if (t > L(73, 1.8)) cu(560 - 120 + 240 * hash(i), lerp(520, 860, easeIn(k)), 16, 0, 'j1ov' + i, 0, 0); }
+        for (let i = 0; i < 4; i++) { const k = frac((t - L(73, 1.8)) / 1.2 + i / 4); if (t > L(73, 1.8)) cu(560 - 120 + 240 * hash(i), lerp(520, 860, easeIn(k)), 16 * popK(seg(t, L(73, 1.8) + i * .1, L(73, 2.2) + i * .1)) * Math.min(1, 6 * k, 6 * (1 - k)), 0, 'j1ov' + i, 0, 0); }
         villi(t, 'j1v', 960);
         const wall = Math.floor(10 * ease(seg(t, L(73, 4.2), L(73, 7.6))));
         for (let i = 0; i < wall; i++) zn(1220 + (i % 5) * 46, 900 - Math.floor(i / 5) * 46 - 300, 22, 'j1zw' + i, { plus: 0 });
-        for (let i = 0; i < 3; i++) { const k = frac((t - L(73)) / 1.6 + i / 3), x = lerp(1720, 1470, k); cu(t > L(73, 6.0) ? Math.max(x, 1480) : x, 560 + 40 * i, 18, 0, 'j1cb' + i, 0, 0); }
+        for (let i = 0; i < 3; i++) { const k = frac((t - L(73)) / 1.6 + i / 3), x = lerp(1720, 1470, k); cu(t > L(73, 6.0) ? Math.max(x, 1480) : x, 560 + 40 * i, 18 * Math.min(1, 6 * k, 6 * (1 - k)), 0, 'j1cb' + i, 0, 0); }
         const o = K.act(t, [[L(73, -.3), 'calm', { lookX: -.6 }], [L(73, 5.8), 'happy', { lookX: .6 }]]);
         K.swim(960, 640, 32, t, { ...o }, 'j1pip3');
       }
@@ -1741,7 +1856,7 @@
       if (weld) o = { ...o, armF: [-.3, 2.8] };
       o = TOON.mix(o, amt > 0 ? TOON.shiver(t, t - .5, t + .5, { amt, face: null }) : {});
       TOON.pip(ppx, ppy, 34, { ...o, tint: 'frozen', tintK: .5 * clamp(amt), key: 'j1pip4' });
-      if (t < L(74, 5.6)) welder(ppx, ppy, 34, o);
+      if (t < L(74, 5.6)) welder(ppx, ppy, 34, o, weld ? [900, 760] : null);
       if (t > L(74, 5.8)) thermo(1100, 820, 1.1, clamp(.3 + .6 * amt), 'j1th');
     } else if (t < L(78, -.3)) {                                   // L76: lozenges on a see-saw; a nasal spray and a scent that stops short. L77: the limit; a narrow window
       K.wash('#EEF0E8', t, { key: 'j1l', blob: '#F7F8F2', n: 3 });
@@ -1764,6 +1879,9 @@
     }
     camEnd();
     for (const ln of [71, 72, 73, 74, 76, 77]) if (t > L(ln, -.6) && t < L(ln, 0)) flash(on(t, L(ln, -.6), L(ln, 0), .3, .3), PAL.cream);
+    if (t > L(70, 3.7) && t < L(70, 4.3)) flash(on(t, L(70, 3.7), L(70, 4.3), .3, .3), PAL.cream);       // the pills → the gut cell
+    for (const d of [5.6, 7.4]) if (t > L(75, d - .15) && t < L(75, d + .15)) flash(on(t, L(75, d - .15), L(75, d + .15), .15, .15), PAL.cream);   // the hammock, and Monday
+    if (lt < .3) flash(1 - seg(lt, 0, .3), PAL.cream);
     if (lt < .45) streaks(1 - seg(lt, 0, .45), 'j1in');
     if (lt > dur - .35) flash(seg(lt, dur - .35, dur), PAL.cream);
   }
@@ -1856,6 +1974,7 @@
       const ir = seg(lt, dur - 5.4, dur - .3);                     // iris out on Pip and the photo
       if (ir > 0) iris(560, 640, lerp(1500, 0, easeIn(ir)), PAL.ink);
     }
+    for (const sw of [L(79, 3.2), L(80, -.3), L(81, -.2)]) if (t > sw - .3 && t < sw + .3) flash(on(t, sw - .3, sw + .3, .3, .3), PAL.cream);   // the scene switches
     if (lt < .35) flash(1 - seg(lt, 0, .35), PAL.cream);
   }
 
